@@ -1,0 +1,8 @@
+db/local.php
+db/*
+temp/cache/*
+temp/*
+modules/cache/*
+templates_c/*
+j
+*~
