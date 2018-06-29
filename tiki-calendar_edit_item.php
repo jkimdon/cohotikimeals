@@ -47,7 +47,6 @@ $recurrence = [
 	'endPeriod'			=> ''
 ];
 $smarty->assign('recurrence', $recurrence);
-
 $caladd = [];
 $rawcals = $calendarlib->list_calendars();
 if ($rawcals['cant'] == 0 && $tiki_p_admin_calendar == 'y') {
@@ -320,11 +319,12 @@ if (isset($_POST['act']) || isset($_REQUEST['delete_occurrence'])) {
 				else $startPeriod = $_REQUEST['startPeriod'];
 				$calRecurrence->setStartPeriod($startPeriod);
 				if ($_REQUEST['endType'] == "dt") {
-				        if ( $isset($_REQUEST['endPeriod_Month']) )
+				        if ( isset($_REQUEST['endPeriod_Month']) )
 				          $endPeriod = TikiLib::make_time(0,0,0,
 									  $_REQUEST['endPeriod_Month'],
 									  $_REQUEST['endPeriod_Day'],
 									  $_REQUEST['endPeriod_Year']);
+					else $endPeriod = $_REQUEST['endPeriod'];
 					$calRecurrence->setEndPeriod($endPeriod);
 				}
 				elseif ($_REQUEST['endType'] == "dtneverending") {
@@ -333,6 +333,7 @@ if (isset($_POST['act']) || isset($_REQUEST['delete_occurrence'])) {
 				} else {
 					$calRecurrence->setNbRecurrences($_REQUEST['nbRecurrences']);
 				}
+
 				$calRecurrence->setUser($save['user']);
 				$calRecurrence->save($_REQUEST['affect'] == 'all');
 				$calendarlib->coho_set_organizer($save['calendarId'],$calRecurrence->getId(),$save['organizers'],$save['guestContact']);
