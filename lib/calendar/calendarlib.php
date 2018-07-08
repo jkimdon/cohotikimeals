@@ -563,7 +563,7 @@ class CalendarLib extends TikiLib
 	  $cond .= " AND `cal_cancelled` = 0";
 	  
 	  $query = "SELECT `cal_id`, `cal_date`, `cal_time`, `cal_signup_deadline`, `cal_base_price`, `cal_max_diners`, `cal_menu`, `cal_notes` ";
-	  $query .= " FROM `coho_meals_meal` ";
+	  $query .= " FROM `cohomeals_meal` ";
 	  $query .= $cond;
 
 	  $allmeals = $this->fetchAll($query);
@@ -575,14 +575,16 @@ class CalendarLib extends TikiLib
 	    $mealid = $meal["cal_id"];
 	    $chef = $cohoml->has_head_chef($mealid);
 	    if ($chef == false) $chef = "No head chef";
-	    else $chef = $this->get_user_preference($chef, 'realName', '??');
+	    else $chef = $this->get_user_preference($chef, 'realName', $chef);
 	    $crew = $cohoml->load_crew($mealid);
 
-	    // deadline printing is hardcoded into tiki-calendar_box.tpl
-	    $deadline = $cohoml->get_day($meal["cal_date"],-1*$meal["cal_signup_deadline"]);
+	    // deadline 
+	    $deadline = date('D, M d, Y', $cohoml->get_day($meal["cal_date"],-1*$meal["cal_signup_deadline"]));
 
-	    // description includes price, crew, menu, notes
-	    $description = "<u>Price:</u> " . $cohoml->price_to_str($meal["cal_base_price"]) . "<br>";
+	    // description is what comes up on the overlay
+	    $description = "Community Meal" . "<br>";
+	    $description .= "<u>Deadline:</u> " . $deadline . "<br>";
+	    $description .= "<u>Price:</u> " . $cohoml->price_to_str($meal["cal_base_price"]) . "<br>";
 	    $description .= "<u>Menu:</u> " . $meal["cal_menu"] . "<br>" . 
 	      "<u>Chef:</u> " . $chef . "<br>";
 	    $description .= "<u>Crew:</u><ul>";
@@ -592,7 +594,7 @@ class CalendarLib extends TikiLib
 	    $description .= "</ul>";
 
 	    $description .= "<u>Notes:</u> " . $meal["cal_notes"];
-
+/*
 	    
 	    // print person's eat/work status on the main view
 	    $eat_work = $cohoml->get_eat_work_status($mealid, $user);
@@ -600,7 +602,7 @@ class CalendarLib extends TikiLib
 	    else $title = "Community Meal (" . $eat_work . ")";
 
 	    $meal_url = "coho_view_meal.php";
-
+*/
 	    $eventArray["$i"][] = array(
 					"result" => $meal,
 					"calitemId" => $mealid,
@@ -615,9 +617,10 @@ class CalendarLib extends TikiLib
 					"prio" => 0, /* unknown */
 					"location" => "CH dining room", /* CH dining room */
 					"category" => 0, /* unknown */
-					"name" => $title,
-					"head" => $head,
-					"deadline" => $deadline,
+					//"name" => $title,
+					"name" => "Community meal",					
+//					"head" => $head,
+//					"deadline" => $deadline,
 					"parsedDescription" => TikiLib::lib('parser')->parse_data($description),
 					"description" => str_replace("\n|\r", "", $description),
 					"calendarId" => $mealCalId, /* presume 1 for Meal Program */

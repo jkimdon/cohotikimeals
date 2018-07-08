@@ -39,7 +39,7 @@
   	        <a href="tiki-calendar_edit_item.php?viewcalitemId={$cellid}" title="{tr}Details{/tr}"{if $cellstatus eq '2'} style="text-decoration:line-through"{/if}>{$cellname|escape}</a><br />
 	    {/if}
 	{/if}
-	{if $cellcalendarId eq '1'}<div class="box-data"><u>Deadline</u> {$celldeadline|tiki_date_format:"%a, %b %e"}</div>{/if} {* coho 1 is meal program *}
+
 
 	{if $show_description eq 'y'}
 		<div class="panel-body">

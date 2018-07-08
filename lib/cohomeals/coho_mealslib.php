@@ -15,11 +15,11 @@ if (strpos($_SERVER["SCRIPT_NAME"], basename(__FILE__)) !== false) {
 class CohoMealsLib extends TikiLib
 {
 
-
+  // used in add_coho_meal_items in calendarlib 
   function has_head_chef( $mealid ) 
   {
     $head_chef = "";
-    $query = "SELECT cal_login FROM coho_meals_meal_participant " .
+    $query = "SELECT cal_login FROM cohomeals_meal_participant " .
       "WHERE cal_id = $mealid AND cal_type = 'H'";
     $haschef = $this->getOne($query);
     
@@ -71,10 +71,10 @@ class CohoMealsLib extends TikiLib
 
 
 
-  
+  // used in add_coho_meal_items  
   function load_crew( $mealid ) {
     $query = "SELECT cal_login, cal_notes " . 
-      "FROM coho_meals_meal_participant " .
+      "FROM cohomeals_meal_participant " .
       "WHERE cal_id = $mealid AND cal_type = 'C' " .
       "ORDER BY cal_notes";
     $allrows = $this->fetchAll($query);
@@ -86,7 +86,7 @@ class CohoMealsLib extends TikiLib
       $crew[$i]["username"] = $row['cal_login'];
       $crew[$i]["job"] = $row['cal_notes'];
 
-      if ( ereg( "^none", $crew[$i]["username"] ) ) {
+      if ( preg_match( '/^none/', $crew[$i]["username"] ) ) {
 	$crew[$i]["fullname"] = "<font color=\"#DD0000\">STILL NEEDED</font>";
 	$crew[$i]["has_volunteer"] = 0;
       } else {

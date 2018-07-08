@@ -9,7 +9,8 @@
 				{/if}
 			{/section}
 		</tr>
-
+		{assign var=mealOverlayId value=0}
+		{assign "overlayText" []}
 		{section name=w loop=$cell}
 			<tr id="row_{$smarty.section.w.index}" style="height:80px">
 				<td class="heading weeks"><a href="{$myurl}?viewmode=week&amp;todate={$cell[w][0].day}" title="{tr}View this Week{/tr}">{$weekNumbers[w]}</a></td>
@@ -61,28 +62,35 @@
 									{if ($calendarId neq '12' and $calendarId neq '2') or ($cell[w][d].items[item].notEndOfMultipleDayEvent eq true)} {* coho hardcoded. 2 is the guest room, 12 is camping *}
 										{if is_array($cell[w][d].items[item])}
 											<td class="Cal{$cell[w][d].items[item].type} calId{$cell[w][d].items[item].calendarId} viewcalitemId_{$cell[w][d].items[item].calitemId} tips" style="padding:0;height:14px;background-color:#{$infocals.$calendarId.custombgcolor};border-color:#{$infocals.$calendarId.customfgcolor};border-style:solid;opacity:{if $cell[w][d].items[item].status eq '0'}0.8{else}1{/if};filter:Alpha(opacity={if $cell[w][d].items[item].status eq '0'}80{else}100{/if});border-width:1px {if $cell[w][d].items[item].endTimeStamp <= ($cell[w][d].day + 86400)}1{else}0{/if}px 1px {if $cell[w][d].items[item].startTimeStamp >= $cell[w][d].day}1{else}0{/if}px;cursor:pointer"
+											    {if $cell[w][d].items[item].calendarId neq "1"} {* meals will have overlay instead of popup *}
 												{if $prefs.calendar_sticky_popup eq 'y'}
 													{popup caption="{tr}Event{/tr}" vauto=true hauto=true sticky=true fullhtml="1" trigger="onClick" text=$over}
 												{else}
 													{popup caption="{tr}Event{/tr}" vauto=true hauto=true sticky=false fullhtml="1" text=$over}
+											        {/if}
 												{/if}>
 
 												{if $myurl eq "tiki-action_calendar.php" or ( $cell[w][d].items[item].startTimeStamp >= $cell[w][d].day or ($cell[w][d].items[item].startTimeStamp <= $cell[w][d].day and $cell[w][d].items[item].endTimeStamp >= $cell[w][d].day) or $smarty.section.d.index eq '0' or $cell[w][d].firstDay)}
 												<a style="padding:1px 3px;{if $cell[w][d].items[item].status eq '2'}text-decoration:line-through;{/if}color:#{$infocals.$calendarId.customfgcolor};"
-														{if $myurl eq "tiki-action_calendar.php"}
-                                										{if $cell[w][d].items[item].calendarId eq "1"} {* coho meal program is #1 *}
+													{if $myurl eq "tiki-action_calendar.php"}
+                                									   {if $cell[w][d].items[item].calendarId eq "1"} {* coho meal program is #1 *}
 														{if $cell[w][d].items[item].modifiable eq "y" || $cell[w][d].items[item].visible eq 'y'}href="coho_meals-view_entry.php?id={$cell[w][d].items[item].calitemId}"{/if}
-														{elseif $cell[w][d].items[item].calitemId eq "-1"}
+													   {elseif $cell[w][d].items[item].calitemId eq "-1"}
 														{if $cell[w][d].items[item].modifiable eq "y" || $cell[w][d].items[item].visible eq 'y'}href="tiki-calendar_edit_item.php?viewrecurrenceId={$cell[w][d].items[item].recurrenceId}&calendarId={$cell[w][d].items[item].calendarId}&itemdate={$cell[w][d].items[item].startTimeStamp}"{/if}
-														{else}
+													   {else}
 														{if $cell[w][d].items[item].modifiable eq "y" || $cell[w][d].items[item].visible eq 'y'}href="tiki-calendar_edit_item.php?viewcalitemId={$cell[w][d].items[item].calitemId}"{/if}
-														{/if}
+													   {/if}
 
-														{elseif $prefs.calendar_sticky_popup neq 'y'}
-															{if $cell[w][d].items[item].modifiable eq "y" || $cell[w][d].items[item].visible eq 'y'}href="tiki-calendar_edit_item.php?viewcalitemId={$cell[w][d].items[item].calitemId}"{/if}
-														{else}
+													{elseif $prefs.calendar_sticky_popup neq 'y'}
+														{*	{if $cell[w][d].items[item].modifiable eq "y" || $cell[w][d].items[item].visible eq 'y'}href="tiki-calendar_edit_item.php?viewcalitemId={$cell[w][d].items[item].calitemId}"{/if}*}
+													{else}
 																href="#"
 														{/if}
+													{if $cell[w][d].items[item].calendarId eq "1"} {* meals overlay instead of popup *}
+													    {math equation='x+1' x=$mealOverlayId assign="mealOverlayId"}
+													    onclick="openNav{$mealOverlayId}()"
+													    {$overlayText[$mealOverlayId]=$cell[w][d].items[item].description}
+													{/if}
 													>{$cell[w][d].items[item].name|truncate:$trunc:".."|escape|default:"..."}</a>
 													{if $cell[w][d].items[item].web}
 														<a href="{$cell[w][d].items[item].web}" target="_other" class="calweb" title="{$cell[w][d].items[item].web}"><img src="img/icons/external_link.gif" width="7" height="7" alt="&gt;"></a>
@@ -92,6 +100,17 @@
 													{/if}
 												{else}&nbsp;
 												{/if}
+
+{if $cell[w][d].items[item].calendarId eq "1"}
+<script>
+function openNav{$mealOverlayId}() {
+    document.getElementById("myNav{$mealOverlayId}").style.width = "100%";
+}
+function closeNav{$mealOverlayId}() {
+    document.getElementById("myNav{$mealOverlayId}").style.width = "0%";
+}
+</script>
+{/if}
 											</td>
 										{else}
 											<td style="padding: 0; height: 14px; border: solid white 1px; width: 100%; font-size: 10px">&nbsp;</td>
@@ -110,3 +129,10 @@
 		{/section}
 	</table>
 </div>
+{for $i=1 to $mealOverlayId}
+<div id="myNav{$i}" class="overlay" onclick="closeNav{$i}()">
+  <div class="overlay-content">
+       <a>{$overlayText[$i]}</a>
+  </div>
+</div>
+{/for}
