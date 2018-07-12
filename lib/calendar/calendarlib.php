@@ -555,82 +555,157 @@ class CalendarLib extends TikiLib
 	  global $prefs;
 	  $cohoml = new CohoMealsLib;
 
-	  // find meals that occur within date range
-	  $start_day = $this->coho_unix_to_YYYYMMDD($tstart);
+	  /////////////////////////////////
+	  // step through each day
 
-	  $end_day = $this->coho_unix_to_YYYYMMDD($tstop);
-	  $cond = "WHERE `cal_date` >= $start_day AND `cal_date` <= $end_day";
-	  $cond .= " AND `cal_cancelled` = 0";
-	  
-	  $query = "SELECT `cal_id`, `cal_date`, `cal_time`, `cal_signup_deadline`, `cal_base_price`, `cal_max_diners`, `cal_menu`, `cal_notes` ";
-	  $query .= " FROM `cohomeals_meal` ";
-	  $query .= $cond;
+	  // trying to match the style in the tiki version from list_items
+	  $mloop = TikiLib::date_format("%m", $tstart);
+	  $dloop = TikiLib::date_format("%d", $tstart);
+	  $yloop = TikiLib::date_format("%Y", $tstart);
+	  $dstart = TikiLib::make_time(0, 0, 0, $mloop, $dloop, $yloop);
+	  $dend = TikiLib::make_time(0, 0, 0, TikiLib::date_format("%m", $tstop), TikiLib::date_format("%d", $tstop), TikiLib::date_format("%Y", $tstop));
+	  for ($i = $dstart; $i <= $dend; $i = TikiLib::make_time(0, 0, 0, $mloop, ++$dloop, $yloop)) {
 
-	  $allmeals = $this->fetchAll($query);
-	  foreach ($allmeals as $meal) {
-	    /* $i is timestamp unix of the beginning of a day */
-	    $i = $this->coho_date_to_unix_daystart($meal["cal_date"]);
+          ///////////
+          // check for non-recurring meals or meals that are recurring-overrides
+          $mealdate = $this->coho_unix_to_YYYYMMDD($i);
+          $query = "SELECT `cal_id`, `cal_date`, `cal_time`, `cal_signup_deadline`, `cal_base_price`, `cal_max_diners`, `cal_menu`, `cal_notes`, `meal_title`, `recurrence_override`, `recurrenceId`, `cal_cancelled`";
+          $query .= " FROM `cohomeals_meal` ";
+          $query .= " WHERE `cal_date` = $mealdate";
 
-	    // find the crew members
-	    $mealid = $meal["cal_id"];
-	    $chef = $cohoml->has_head_chef($mealid);
-	    if ($chef == false) $chef = "No head chef";
-	    else $chef = $this->get_user_preference($chef, 'realName', $chef);
-	    $crew = $cohoml->load_crew($mealid);
+          $overridden = " AND `recurrenceId` NOT IN (0"; // placeholder to make the commas work out; there is no id = 0
+          $singlemeals = $this->fetchAll($query);
+          foreach ($singlemeals as $meal) {
+              if ($meal["recurrence_override"]) $overridden .= ", " . $meal["recurrenceId"];
+              if ($meal["cal_cancelled"] == 0) {
+                  $mealtitle = $meal["meal_title"];
+                  if ($mealtitle == NULL) $mealtitle = "Community Meal";
 
-	    // deadline 
-	    $deadline = date('D, M d, Y', $cohoml->get_day($meal["cal_date"],-1*$meal["cal_signup_deadline"]));
+                  // find the crew members
+                  $mealid = $meal["cal_id"];
+                  $chef = $cohoml->has_head_chef($mealid);
+                  if ($chef == false) $chef = "No head chef";
+                  else $chef = $this->get_user_preference($chef, 'realName', $chef);
+                  $crew = $cohoml->load_crew($mealid);
+                  
+                  // description is what comes up on the overlay
+                  $description = $mealtitle . "<br>";
+                  $description .= "<u>Deadline:</u> " . date('D, M d, Y', $mealdate,-1*$meal["cal_signup_deadline"]) . "<br>";
+                  $description .= "<u>Price:</u> " . $cohoml->price_to_str($meal["cal_base_price"]) . "<br>";
+                  $description .= "<u>Menu:</u> " . $meal["cal_menu"] . "<br>";
+                  $description .= "<u>Chef:</u> " . $chef . "<br>";
+                  $description .= "<u>Crew:</u><ul>";
+                  foreach( $crew as $cm ) {
+                      $description .= "<li>" . $cm["fullname"] . "&nbsp;&nbsp; (" . $cm["job"] . ")</li>";	      
+                  }
+                  $description .= "</ul>";
+                  $description .= "<u>Notes:</u> " . $meal["cal_notes"];
+                  
+                  $eventArray["$i"][] = array(
+                      "result" => $meal,
+                      "calitemId" => $mealid,
+                      "calname" => "Meal Program",
+                      "time" => $meal["cal_time"], /* user time */
+                      "end" => $meal["cal_time"]+20000, /* assume 2 hrs */
+                      "type" => 1,
+                      "web" => "",
+                      "startTimeStamp" => $this->coho_get_unix($meal["cal_time"],$i),
+                      "endTimeStamp" => $this->coho_get_unix($meal["cal_time"]+20000,$i),
+                      "nl" => 0, /* unknown */
+                      "prio" => 0, /* unknown */
+                      "location" => "CH dining room", /* maybe want to make this variable */
+                      "category" => 0, /* unknown */
+                      "name" => $mealtitle,
+                      "parsedDescription" => TikiLib::lib('parser')->parse_data($description),
+                      "description" => str_replace("\n|\r", "", $description),
+                      "calendarId" => $mealCalId, /* presume 1 for Meal Program */
+                      "status" => 0, /* unknown */
+                      "user" => $user
+                  );
+              }
+          } // end non-recurring meals
+          $overridden .= ")";
+          
+          ///////////
+          // check for recurring meals that were not overridden
+          // they are listed by day of the week (text) and week number in the month
+          // also there is an option of alternating cheffing months, so we check for
+          // even or odd month as well.
+          $which_day = TikiLib::date_format("%A", $i); // full weekday name
 
-	    // description is what comes up on the overlay
-	    $description = "Community Meal" . "<br>";
-	    $description .= "<u>Deadline:</u> " . $deadline . "<br>";
-	    $description .= "<u>Price:</u> " . $cohoml->price_to_str($meal["cal_base_price"]) . "<br>";
-	    $description .= "<u>Menu:</u> " . $meal["cal_menu"] . "<br>" . 
-	      "<u>Chef:</u> " . $chef . "<br>";
-	    $description .= "<u>Crew:</u><ul>";
-	    foreach( $crew as $cm ) {
-	      $description .= "<li>" . $cm["fullname"] . "&nbsp;&nbsp; (" . $cm["job"] . ")</li>";	      
-	    }
-	    $description .= "</ul>";
+          $tmp = strtotime("First " . $which_day . " of this month", $i);
+          $first = TIkiLib::make_time(0,0,0, date('m', $tmp), date('d', $tmp), date('Y', $tmp));
+          $tmp = strtotime("Second " . $which_day . " of this month", $i);          
+          $second = TIkiLib::make_time(0,0,0, date('m', $tmp), date('d', $tmp), date('Y', $tmp));
+          $tmp = strtotime("Third " . $which_day . " of this month", $i);          
+          $third = TIkiLib::make_time(0,0,0, date('m', $tmp), date('d', $tmp), date('Y', $tmp));
+          $tmp = strtotime("Fourth " . $which_day . " of this month", $i);          
+          $fourth = TIkiLib::make_time(0,0,0, date('m', $tmp), date('d', $tmp), date('Y', $tmp));
+          if ($i == $first) $which_wk = 1;
+          elseif ($i == $second) $which_wk = 2;
+          elseif ($i == $third) $which_wk = 3;
+          elseif ($i == $fourth) $which_wk = 4;
+          else $which_wk = 5;
 
-	    $description .= "<u>Notes:</u> " . $meal["cal_notes"];
-/*
-	    
-	    // print person's eat/work status on the main view
-	    $eat_work = $cohoml->get_eat_work_status($mealid, $user);
-	    if ($eat_work == "") $title = "Community Meal";
-	    else $title = "Community Meal (" . $eat_work . ")";
+          if (TikiLib::date_format("%m", $i) % 2) $which_month = 2;
+          else $which_month = 1;
 
-	    $meal_url = "coho_view_meal.php";
-*/
-	    $eventArray["$i"][] = array(
-					"result" => $meal,
-					"calitemId" => $mealid,
-					"calname" => "Meal Program",
-					"time" => $meal["cal_time"], /* user time */
-					"end" => $meal["cal_time"]+20000, /* assume 2 hrs */
-					"type" => 1,
-					"web" => "",
-					"startTimeStamp" => $this->coho_get_unix($meal["cal_time"],$i),
-					"endTimeStamp" => $this->coho_get_unix($meal["cal_time"]+20000,$i),
-					"nl" => 0, /* unknown */
-					"prio" => 0, /* unknown */
-					"location" => "CH dining room", /* CH dining room */
-					"category" => 0, /* unknown */
-					//"name" => $title,
-					"name" => "Community meal",					
-//					"head" => $head,
-//					"deadline" => $deadline,
-					"parsedDescription" => TikiLib::lib('parser')->parse_data($description),
-					"description" => str_replace("\n|\r", "", $description),
-					"calendarId" => $mealCalId, /* presume 1 for Meal Program */
-					"status" => 0, /* unknown */
-					"user" => $user
-					);
-	  }
-	}
+          $query = "SELECT `recurrenceId`, `time`, `base_price`, `menu`";
+          $query .= " FROM `cohomeals_meal_recurrence`";
+          $query .= " WHERE `which_day`='" . $which_day ."'";
+          $query .= " AND `which_week`=" . $which_wk;
+          $query .= " AND `which_month` IN (0," . $which_month . ")";
+          $query .= " AND (`startPeriod` <= $i) AND (`endPeriod` = 0 OR `endPeriod` >= $i)";
+          $query .= $overridden;
 
-    
+          $recurringmeals = $this->fetchAll($query);
+          foreach ($recurringmeals as $meal) {
+              $mealtitle = $meal["meal_title"];
+              if ($mealtitle == NULL) $mealtitle = "Community Meal";
+
+              // find the crew members
+              $recurrenceId = $meal["recurrenceId"];
+              $chef = $cohoml->recurring_head_chef($recurrenceId);
+              if ($chef == false) $chef = "No head chef";
+              else $chef = $this->get_user_preference($chef, 'realName', $chef);
+              $crew = $cohoml->load_recurring_crew($recurrenceId);
+
+              // description is what comes up on the overlay
+              $description = $mealtitle . "<br>";
+              $description .= "<u>Deadline:</u> " . date('D, M d, Y', $mealdate,-1*$meal["signup_deadline"]) . "<br>";
+              $description .= "<u>Price:</u> " . $cohoml->price_to_str($meal["base_price"]) . "<br>";
+              $description .= "<u>Menu:</u> " . $meal["menu"] . "<br>";
+              $description .= "<u>Chef:</u> " . $chef . "<br>";
+              $description .= "<u>Crew:</u><ul>";
+              foreach( $crew as $cm ) {
+                  $description .= "<li>" . $cm["fullname"] . "&nbsp;&nbsp; (" . $cm["job"] . ")</li>";	      
+              }
+              $description .= "</ul>";
+              
+              $eventArray["$i"][] = array(
+                  "result" => $meal,
+                  "calitemId" => -1, // recurring
+                  "calname" => "Meal Program",
+                  "time" => $meal["time"], /* user time */
+                  "end" => $meal["time"]+20000, /* assume 2 hrs */
+                  "type" => 1,
+                  "web" => "",
+                  "startTimeStamp" => $this->coho_get_unix($meal["cal_time"],$i),
+                  "endTimeStamp" => $this->coho_get_unix($meal["cal_time"]+20000,$i),
+                  "nl" => 0, /* unknown */
+                  "prio" => 0, /* unknown */
+                  "location" => "CH dining room", /* maybe want to make this variable */
+                  "category" => 0, /* unknown */
+                  "name" => $mealtitle,
+                  "parsedDescription" => TikiLib::lib('parser')->parse_data($description),
+                  "description" => str_replace("\n|\r", "", $description),
+                  "calendarId" => $mealCalId, /* presume 1 for Meal Program */
+                  "status" => 0, /* unknown */
+                  "user" => $user
+              );
+          } // end recurring meals
+      } // end step through days
+    }
 
 
 	/**

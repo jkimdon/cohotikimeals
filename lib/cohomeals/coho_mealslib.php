@@ -27,6 +27,21 @@ class CohoMealsLib extends TikiLib
   }
 
 
+  // used in add_coho_meal_items in calendarlib 
+  function recurring_head_chef( $recurrenceId ) 
+  {
+    $head_chef = "";
+    $query = "SELECT userId FROM cohomeals_participant_recurrence " .
+      "WHERE recurringMealId = " . $recurrenceId . " AND participant_type = 'H'";
+    $haschef = $this->getOne($query);
+    
+    return $haschef;
+  }
+
+
+
+  
+
   /// fixme debug: i think I can delete this
   function print_crew( $mealid, $use_longnames = true )
   {
@@ -85,6 +100,34 @@ class CohoMealsLib extends TikiLib
       $crew[$i] = array();
       $crew[$i]["username"] = $row['cal_login'];
       $crew[$i]["job"] = $row['cal_notes'];
+
+      if ( preg_match( '/^none/', $crew[$i]["username"] ) ) {
+	$crew[$i]["fullname"] = "<font color=\"#DD0000\">STILL NEEDED</font>";
+	$crew[$i]["has_volunteer"] = 0;
+      } else {
+	$crew[$i]["fullname"] = $this->get_user_preference($crew[$i]["username"], 'realName', $crew[$i]["username"]);
+	$crew[$i]["has_volunteer"] = 1;
+	}
+      $i++;
+    }
+
+    return $crew;
+  }
+
+  // used in add_coho_meal_items  
+  function load_recurring_crew( $recurrenceId ) {
+    $query = "SELECT userId, crew_description " . 
+      "FROM cohomeals_participant_recurrence " .
+      "WHERE recurringMealId = $recurrenceId AND participant_type = 'C' " .
+      "ORDER BY crew_description";
+    $allrows = $this->fetchAll($query);
+    
+    $crew = array();
+    $i=0;
+    foreach ($allrows as $row) {
+      $crew[$i] = array();
+      $crew[$i]["username"] = $row['userId'];
+      $crew[$i]["job"] = $row['crew_description'];
 
       if ( preg_match( '/^none/', $crew[$i]["username"] ) ) {
 	$crew[$i]["fullname"] = "<font color=\"#DD0000\">STILL NEEDED</font>";
