@@ -48,10 +48,9 @@ for ( $i=0; $i < 7; $i++ ) {
 /// events/activities are id 8, meetings are id 3, meal program is id 1, LUV activities are 10, SAT are 11
 $calids = array();
 $calids[0] = 3;
-$calids[1] = 1;
-$calids[2] = 8;
-$calids[3] = 10;
-$calids[4] = 11;
+$calids[1] = 8;
+$calids[2] = 10;
+$calids[3] = 11;
 $listevents = $calendarlib->list_items($calids, $user, $start_date, $end_date, 0, -1);
 $calendarlib->add_coho_recurrence_items($listevents, $calids, $user, $start_date, $end_date, 0, -1);
 for ( $i=0; $i < 7; $i++ ) {
@@ -76,6 +75,35 @@ for ( $i=0; $i < 7; $i++ ) {
     $printDay[$i]['events'][] = $de;
   }
 }
+
+
+/// meal program is id 1
+$listevents = array();
+$calendarlib->add_coho_meal_items($listevents, 1, $user, $start_date, $end_date);
+for ( $i=0; $i < 7; $i++ ) {
+  $dday = $printDay[$i]['day'];
+  $daysevents = array();
+  if (isset($listevents["$dday"])) {
+    $idnum = 0;
+    foreach ($listevents["$dday"] as $le) {
+      $event_info = array();
+      $event_info['name'] = $le['name'];
+      $event_info['description'] = $le['description'];
+      $event_info['start'] = $le['startTimeStamp'];
+      $event_info['end'] = $le['startTimeStamp']; //$le['endTimeStamp']; want no end time displayed
+      $event_info['location'] = $le['location'];
+      $id = $le['startTimeStamp'] . 'n' . $idnum;
+      $daysevents[$id] = $event_info;
+      $idnum++;
+    }
+  }
+  ksort($daysevents);
+  foreach ($daysevents as $de) {
+    $printDay[$i]['events'][] = $de;
+  }
+}
+
+
 
 
 /// guest room is id 2
@@ -243,10 +271,10 @@ $mail_data = $smarty->fetch("mail/weekly_calendar_subject.tpl");
 $mail->setSubject($mail_data);
 $mail_data = $smarty->fetch("mail/weekly_calendar_email.tpl");
 $mail->setHtml($mail_data, strip_tags($mail_data));
-$mail->send(array($prefs['weekly_calendar_to_email']));
+//$mail->send(array($prefs['weekly_calendar_to_email']));
 //$mail->send(array('jkimdon@gmail.com'));
 //$smarty->display("mail/weekly_calendar_subject.tpl");
-//$smarty->display("mail/weekly_calendar_email.tpl");
+$smarty->display("mail/weekly_calendar_email.tpl");
 
 header('Location: tiki-calendar.php?todate=' . $start_date);
 exit;
