@@ -581,6 +581,9 @@ class CalendarLib extends TikiLib
                   $mealtitle = $meal["meal_title"];
                   if ($mealtitle == NULL) $mealtitle = "Community Meal";
 
+                  // combine date and time to unix time
+                  $mealdatetime = $cohoml->coho_datetime_to_unix( $meal["cal_date"], $meal["cal_time"] );
+                  
                   // find the crew members
                   $mealid = $meal["cal_id"];
                   $chef = $cohoml->has_head_chef($mealid);
@@ -589,9 +592,11 @@ class CalendarLib extends TikiLib
                   $crew = $cohoml->load_crew($mealid);
                   
                   // description is what comes up on the overlay
-                  $description = $mealtitle . "<br>";
-                  $description .= "<u>Deadline:</u> " . date('D, M d, Y', $mealdate,-1*$meal["cal_signup_deadline"]) . "<br>";
-                  $description .= "<u>Price:</u> " . $cohoml->price_to_str($meal["cal_base_price"]) . "<br>";
+                  $description = "<a href=coho_meals-view_entry.php?id=" . $mealid . "&mealdatetime=" . $mealdatetime . ">" . $mealtitle . "</a><br><b>";
+                  $description .= TikiLib::date_format('%I:%M %p', $mealdatetime) . " on ";
+                  $description .= TikiLib::date_format('%a, %b %e, %Y', $mealdatetime) . "<br>";
+                  $description .= "<u>Signup by:</u> " . TikiLib::date_format('%a, %b %e', strtotime("-".$meal["cal_signup_deadline"]." days",$mealdatetime)) . "<br>";
+                  $description .= "<u>Price:</u>" . $cohoml->price_to_str($meal["cal_base_price"]) . "<br>";
                   $description .= "<u>Menu:</u> " . $meal["cal_menu"] . "<br>";
                   $description .= "<u>Chef:</u> " . $chef . "<br>";
                   $description .= "<u>Crew:</u><ul>";
@@ -599,7 +604,7 @@ class CalendarLib extends TikiLib
                       $description .= "<li>" . $cm["fullname"] . "&nbsp;&nbsp; (" . $cm["job"] . ")</li>";	      
                   }
                   $description .= "</ul>";
-                  $description .= "<u>Notes:</u> " . $meal["cal_notes"];
+                  $description .= "<u>Notes:</u> " . $meal["cal_notes"] . "</b>";
                   
                   $eventArray["$i"][] = array(
                       "result" => $meal,
@@ -650,7 +655,7 @@ class CalendarLib extends TikiLib
           if (TikiLib::date_format("%m", $i) % 2) $which_month = 2;
           else $which_month = 1;
 
-          $query = "SELECT `recurrenceId`, `time`, `base_price`, `menu`";
+          $query = "SELECT `recurrenceId`, `time`, `base_price`, `menu`, signup_deadline";
           $query .= " FROM `cohomeals_meal_recurrence`";
           $query .= " WHERE `which_day`='" . $which_day ."'";
           $query .= " AND `which_week`=" . $which_wk;
@@ -663,6 +668,9 @@ class CalendarLib extends TikiLib
               $mealtitle = $meal["meal_title"];
               if ($mealtitle == NULL) $mealtitle = "Community Meal";
 
+              // combine date and time to unix time
+              $mealdatetime = $cohoml->coho_time_to_unix( $i, $meal["time"] );
+              
               // find the crew members
               $recurrenceId = $meal["recurrenceId"];
               $chef = $cohoml->recurring_head_chef($recurrenceId);
@@ -671,8 +679,10 @@ class CalendarLib extends TikiLib
               $crew = $cohoml->load_recurring_crew($recurrenceId);
 
               // description is what comes up on the overlay
-              $description = $mealtitle . "<br>";
-              $description .= "<u>Deadline:</u> " . date('D, M d, Y', $mealdate,-1*$meal["signup_deadline"]) . "<br>";
+              $description = "<a href=coho_meals-view_entry.php?recurrenceId=" . $recurrenceId . "&mealdatetime=" . $mealdatetime .">" . $mealtitle . "</a><br><b>";
+              $description .= TikiLib::date_format('%I:%M %p', $mealdatetime) . " on ";
+              $description .= TikiLib::date_format('%a, %b %e, %Y', $mealdatetime) . "<br>";
+              $description .= "<u>Signup by:</u> " . TikiLib::date_format('%a, %b %e', strtotime("-".$meal["signup_deadline"]." days",$mealdatetime)) . "<br>";
               $description .= "<u>Price:</u> " . $cohoml->price_to_str($meal["base_price"]) . "<br>";
               $description .= "<u>Menu:</u> " . $meal["menu"] . "<br>";
               $description .= "<u>Chef:</u> " . $chef . "<br>";
@@ -680,7 +690,7 @@ class CalendarLib extends TikiLib
               foreach( $crew as $cm ) {
                   $description .= "<li>" . $cm["fullname"] . "&nbsp;&nbsp; (" . $cm["job"] . ")</li>";	      
               }
-              $description .= "</ul>";
+              $description .= "</ul></b>";
               
               $eventArray["$i"][] = array(
                   "result" => $meal,
@@ -1870,6 +1880,7 @@ class CalendarLib extends TikiLib
 		];
 	}
 
+    // fixme: maybe can get rid of or relocate some of these date functions
 	function coho_unix_daystart($unixdate) {
 	  $itemdate = TikiLib::date_format2('Y/m/d',$unixdate);	  
 	  $itemdate = explode("/",$itemdate);

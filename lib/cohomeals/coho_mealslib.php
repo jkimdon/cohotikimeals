@@ -237,30 +237,42 @@ class CohoMealsLib extends TikiLib
   }
 
   
-  function load_meal_info($mealid, &$mealinfo)
+  function load_meal_info($mealtype, $mealid, &$mealinfo)
   {
-    $query = "SELECT `cal_date`, `cal_time`, `cal_suit`, `cal_menu`, " .
-      "`cal_signup_deadline`, `cal_base_price`, " .
-      "`cal_walkins`, `cal_notes`, `cal_max_diners`, `cal_cancelled` " .
-      "FROM `coho_meals_meal` WHERE `cal_id` = $mealid";
-    $vars = array($mealid);
-    $res = $this->query($query,$vars);
-    $info = $res->fetchRow();
-   
-    // reformat signup deadline
-    $signup_deadline = $this->get_day( $info["cal_date"], -1*$info["cal_signup_deadline"]);
+      if ($mealtype == 'recurring') {
+          $query = "SELECT signup_deadline, base_price, menu, meal_title";
+          $query .= " FROM cohomeals_meal_recurrence WHERE recurrenceId=" . $mealid;
+          $res = $this->query($query);
+          if ( $info = $res->fetchRow() ) {
+              if ( $info["meal_title"] == "" ) $mealinfo["title"] = "Community meal";
+              else $mealinfo["title"] = $info["meal_title"];
+              $mealinfo["menu"] = $info["menu"];
+              $mealinfo["signup_deadline"] = $info["signup_deadline"];
+              $mealinfo["base_price"] = $info["base_price"];
+              $mealinfo["walkins"] = 'C';
+              $mealinfo["notes"] = "";
+              $mealinfo["max_diners"] = 0;
+              $mealinfo["cancelled"] = 0;
+          } else return false;
 
-    $mealinfo["cal_date"] = $info["cal_date"];
-    $mealinfo["cal_time"] = $info["cal_time"];
-    $mealinfo["cal_suit"] = $info["cal_suit"];
-    $mealinfo["cal_menu"] = $info["cal_menu"];
-    $mealinfo["cal_signup_deadline"] = $signup_deadline;
-    $mealinfo["cal_base_price"] = $info["cal_base_price"];
-    $mealinfo["cal_walkins"] = $info["cal_walkins"];
-    $mealinfo["cal_notes"] = $info["cal_notes"];
-    $mealinfo["cal_max_diners"] = $info["cal_max_diners"];
-    $mealinfo["cal_cancelled"] = $info["cal_cancelled"];
-    $mealinfo["unix_datetime"] = $this->coho_datetime_to_unix($info["cal_date"], $info["cal_time"]);
+      } else {
+      
+          $query = "SELECT cal_walkins, cal_signup_deadline, " .
+              "cal_base_price, cal_max_diners, cal_menu, cal_notes, cal_cancelled, meal_title";
+          $query .= " FROM cohomeals_meal WHERE cal_id = " . $mealid;
+          $res = $this->query($query);
+          if ( $info = $res->fetchRow() ) {
+              $mealinfo["title"] = $info["meal_title"];
+              $mealinfo["menu"] = $info["cal_menu"];
+              $mealinfo["signup_deadline"] = $info["cal_signup_deadline"];
+              $mealinfo["base_price"] = $info["cal_base_price"];
+              $mealinfo["walkins"] = $info["cal_walkins"];
+              $mealinfo["notes"] = $info["cal_notes"];
+              $mealinfo["max_diners"] = $info["cal_max_diners"];
+              $mealinfo["cancelled"] = $info["cal_cancelled"];
+          } else return false;
+      }
+      return true;
   }
 
 
@@ -282,6 +294,25 @@ class CohoMealsLib extends TikiLib
     return $unixtime;
   }
 
+  function coho_time_to_unix($unixdate, $HHMM)
+  {
+    $length = strlen($HHMM); 
+    if ( ($length==3) || ($length==5) ) // in case someone enters $HMMSS or $HMM
+      $tmp = str_pad($HHMM,$length+1,"0",STR_PAD_LEFT);
+    else $tmp = $HHMM;
+    $tmp = str_pad($tmp,6,"0",STR_PAD_RIGHT);
+    $HH = substr($tmp,0,2);
+    $MinMin = substr($tmp,2,2);
+
+    $YYYY = date('Y', $unixdate);
+    $MM = date('m', $unixdate);
+    $DD = date('d', $unixdate);
+
+    $unixtime = TikiLib::make_time($HH,$MinMin,$SS,$MM,$DD,$YYYY);
+    return $unixtime;
+  }
+
+
 
 
   function price_to_str($price) 
@@ -297,38 +328,12 @@ class CohoMealsLib extends TikiLib
     return $ret;
   }
 
-  
-  function get_adjusted_price($mealid, $fee_class, $known_walkin=false, $user_in_question="")
+  // used in coho_meals-view_entry.php (walkin fees have been eliminated)
+  function get_adjusted_price($base_price, $fee_class)
   {
-    
-    /// get meal details. establish base price, past_deadline
-    $base_price = 400;
-    $sql = "SELECT cal_base_price, cal_date, cal_signup_deadline " .
-      "FROM coho_meals_meal " .
-      "WHERE cal_id = $mealid";
-    $res = $this->query($sql);
-    $info = $res->fetchRow();
-    
-    $past_deadline = true;
-    $signup_deadline = $this->get_day( $info["cal_date"], -1*$info["cal_signup_deadline"]);
-    if ( $signup_deadline >= time() ) $past_deadline = false;
-    
-    $base_price = $info["cal_base_price"];
-    
-    
-    /// establish price category based on preregistration or walkin
-    $category = "pre";
-    if ( $known_walkin == true ) $category = "walkin";
-    else if ( $user_in_question != '' ) {
-      if ( $this->is_walkin( $mealid, $user_in_question ) == 1 ) $category = "walkin";
-    } else {
-      if ( $past_deadline == true ) $category = "walkin";
-    }
-    
     
     /// calculate cost based on above information
     $cost = $base_price;
-    if ( ($category == "walkin") && ($base_price != 0) ) $cost += 100;
     
     switch ( $fee_class ) {
     case "F":

@@ -29,10 +29,16 @@ $is_meal_admin = $mealperms->admin_meals;
 
 $myurl = 'coho_meals-view_entry.php';
 
+$mealtype = "regular";
 if ( isset($_REQUEST["id"] )) {
   $mealid = $_REQUEST["id"];
+} elseif ( isset($_REQUEST["recurrenceId"])) {
+    $mealid = $_REQUEST["recurrenceId"];
+    $mealtype = "recurring";
 } else {
-  $mealid = -1;
+    $smarty->assign('errortype', 'Invalid entry id.');
+    $smarty->display("error.tpl");
+    die;
 }
 
 if ( empty ( $mealid ) || $mealid <= 0 || ! is_numeric ( $mealid ) ) {
@@ -43,43 +49,56 @@ if ( empty ( $mealid ) || $mealid <= 0 || ! is_numeric ( $mealid ) ) {
 
 $smarty->assign('mealid', $mealid);
 
+if ( isset($_REQUEST["mealdatetime"]) ) $mealdatetime = $_REQUEST["mealdatetime"];
+else {
+  $smarty->assign('errortype', 'Invalid meal date.');
+  $smarty->display("error.tpl");
+  die;
+}
+
 $cohomeals = new CohoMealsLib;
 
 /// load meal info
 $meal = array();
-$cohomeals->load_meal_info($mealid, $meal);
+if ( !$cohomeals->load_meal_info($mealtype, $mealid, $meal) ) {
+    $smarty->assign('errortype', 'Could not find meal.');
+    $smarty->display("error.tpl");
+    die;
+}
 
-$smarty->assign('mealsuit', $meal["cal_suit"]);
-$smarty->assign('mealmenu', $meal["cal_menu"]);
-$smarty->assign('mealnotes', $meal["cal_notes"]);
+$smarty->assign('mealmenu', $meal["menu"]);
+$smarty->assign('mealnotes', $meal["notes"]);
 
-$smarty->assign('mealdatetime', $meal["unix_datetime"]);
-$smarty->assign('mealcancelled', $meal["cal_cancelled"]);
-$smarty->assign('signup_deadline', $meal["cal_signup_deadline"]);
+$smarty->assign('mealdatetime', $mealdatetime );
+$smarty->assign('mealcancelled', $meal["cancelled"]);
+$signup_datetime = strtotime("-".$meal["signup_deadline"]." days",$mealdatetime);
+$smarty->assign('signup_deadline', $signup_datetime);
 
 $past_deadline = false;
-if ( $meal["cal_signup_deadline"] < time() ) $past_deadline = true;
+if ( $signup_deadline < time() ) $past_deadline = true;
 $can_signup = !$past_deadline || $is_meal_admin; 
 $smarty->assign('past_deadline', $past_deadline);
 $smarty->assign('can_signup', $can_signup);
 
-$smarty->assign('adult_price', $cohomeals->price_to_str($cohomeals->get_adjusted_price($mealid, "A")));
-$smarty->assign('kid_price', $cohomeals->price_to_str($cohomeals->get_adjusted_price($mealid, "K")));
-$smarty->assign('walkin_price', $cohomeals->price_to_str($cohomeals->get_adjusted_price($mealid, "A", true)));
+$smarty->assign('adult_price', $cohomeals->price_to_str($cohomeals->get_adjusted_price($meal["base_price"], "A")));
+$smarty->assign('kid_price', $cohomeals->price_to_str($cohomeals->get_adjusted_price($meal["base_price"], "K")));
 
-$chefusername = $cohomeals->has_head_chef( $mealid );
+if ( $mealtype == "recurring" ) $chefusername = $cohomeals->recurring_head_chef( $mealid );
+else $chefusername = $cohomeals->has_head_chef( $mealid );
 if ( $chefusername == "" ) {
   $smarty->assign('has_head_chef', '0');
-  $smarty->assign('mealheadchef', '');
+  $smarty->assign('mealheadchef', 'No head chef');
 }  
 else {
   $smarty->assign('has_head_chef', '1');
-  $smarty->assign('mealheadchef', $cohomeals->get_user_preference($chefusername, 'realName', '??'));
+  $smarty->assign('mealheadchef', $cohomeals->get_user_preference($chefusername, 'realName', $chefusername));
 }
 
-$crew = $cohomeals->load_crew($mealid);
+if ( $mealtype == "recurring" ) $crew = $cohomeals->load_recurring_crew($mealid);
+else $crew = $cohomeals->load_crew($mealid);
 $smarty->assign('crew', $crew);
 
+/*
 $diners = $cohomeals->load_diners($mealid);
 $smarty->assign('diners', $diners);
 //begin debug
@@ -88,8 +107,7 @@ foreach( $diners as $diner ){
   echo $diner["username"] . ": " . $diner["realName"] . ", " . $diner["dining"] . "<br>";
 }
 // end debug
-
-
+*/
 
 
 $smarty->assign('mid', 'coho_meals-view_entry.tpl');

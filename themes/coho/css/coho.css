@@ -8629,7 +8629,7 @@ footer.footer {
     padding: 8px;
     text-decoration: none;
     font-size: 36px;
-    color: #e6e6e6;
+    color: #66ffff;
     display: block; /* Display block instead of inline */
     transition: 0.3s; /* Transition effects on hover (color) */
 }
@@ -8639,22 +8639,20 @@ footer.footer {
     color: #f1f1f1;
 }
 
-/* Position the close button (top right corner) */
-.overlay .closebtn {
-    position: absolute;
-    top: 20px;
-    right: 45px;
-    font-size: 60px;
+/* other text */
+.overlay b {
+    padding: 8px;
+    text-decoration: none;
+    font-size: 24px;
+    color: #e6e6e6;
+    display: block; /* Display block instead of inline */
+    transition: 0.3s; /* Transition effects on hover (color) */
 }
 
 /* When the height of the screen is less than 450 pixels, change the font-size of the links and position the close button again, so they don't overlap */
 @media screen and (max-height: 450px) {
     .overlay a {font-size: 20px}
-    .overlay .closebtn {
-        font-size: 40px;
-        top: 15px;
-        right: 35px;
-    }
+    .overlay b {font-size: 18px}
 }
 
 /******end slide-in overlay*/

@@ -6,26 +6,15 @@
 	   <h2>***** This meal has been <font color="#DD0000">cancelled</font> *****</h2>
 	 {else}
 
-	 Signup deadline: {$signup_deadline|tiki_date_format:"%a, %b %e, %Y"}<br>
+	 Signup by: {$signup_deadline|tiki_date_format:"%a, %b %e"}<br>
 	 {if $past_deadline} This meal is in <font color="#DD0000">walkin status</font>{/if}
 
 	 {/if}
        </div>
        <p>
-	<table class="normal">
-       	       <tr>
-		<th>Prices:</th>
-       	       	<th>adult</th>
-       	       	<th>half-price child</th>
-       	       	<th>walkin</th>
-       	       </tr>
-       	       <tr>
-		<td>Signing up now costs:</td>
-       		<td class="number">{$adult_price}</td>
-       		<td class="number">{$kid_price}</td>
-       		<td class="number">{$walkin_price}</td>
-       	       </tr>
-         </table>
+       <th>Prices:</th><br>
+       <th>Adult:</th> {$adult_price}<br>
+       <th>Half price child:</th> {$kid_price}<br>
        </p>
        <p></p>
 
@@ -37,11 +26,8 @@
        
        <table class="normal">
          <caption>Meal information</caption>
-         <tr><th>Suit:</th>
-             <td>{$mealsuit}</td>
-	 </tr>
          <tr><th>Time:</th>
-		<td>{$mealdatetime|tiki_date_format:"%l:%M %p"}</td>
+		<td>{$mealdatetime|tiki_date_format:"%I:%M %p"}</td>
 	 </tr>
          <tr><th>Menu:</th>
 		<td>{$mealmenu}</td>
