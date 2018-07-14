@@ -98,8 +98,8 @@ if ( $mealtype == "recurring" ) $crew = $cohomeals->load_recurring_crew($mealid)
 else $crew = $cohomeals->load_crew($mealid);
 $smarty->assign('crew', $crew);
 
-/*
-$diners = $cohomeals->load_diners($mealid);
+
+$diners = $cohomeals->load_diners($mealid, $mealtype);
 $smarty->assign('diners', $diners);
 //begin debug
 echo "diners: <br>";
@@ -107,7 +107,6 @@ foreach( $diners as $diner ){
   echo $diner["username"] . ": " . $diner["realName"] . ", " . $diner["dining"] . "<br>";
 }
 // end debug
-*/
 
 
 $smarty->assign('mid', 'coho_meals-view_entry.tpl');

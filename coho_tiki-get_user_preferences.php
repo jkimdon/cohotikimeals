@@ -5,12 +5,14 @@ if (strpos($_SERVER["SCRIPT_NAME"], basename(__FILE__)) !== false) {
   header("location: index.php");
   exit;
 }
+include_once('lib/cohomeals/coho_mealslib.php');
+$meals = new CohoMealsLib;
 
-
-$tikilib->get_user_preference($userwatch, 'billingGroup', '');
-$tikilib->get_user_preference($userwatch, 'birthdate', '32400');
-$tikilib->get_user_preference($userwatch, 'in_meal_program', 'n');
-$smarty->assign('ynarray', array('y','n'));
+$bg = $tikilib->get_user_preference($userwatch, 'billingGroup', '');
+if ($bg) {
+    $bgname = $meals->get_billing_group_name($bg);
+} else $bgname = "UNASSIGNED. PLEASE FIX!!";
+$smarty->assign('billingGroup', $bgname);
 
 $userGroups = $userlib->get_user_groups_inclusion($userwatch);
 if (array_key_exists('CoHo owners', $userGroups) || array_key_exists('on-site renters', $userGroups)) {
@@ -19,6 +21,9 @@ if (array_key_exists('CoHo owners', $userGroups) || array_key_exists('on-site re
 } else {
   $smarty->assign('showUnit', 'n');
 }
+
+$tikilib->get_user_preference($userwatch, 'meal_multiplier', 1);
+if (!$user_preferences[$userwatch]['meal_multiplier']) $user_preferences[$userwatch]['meal_multiplier'] = 1;
 
 
 // food preferences

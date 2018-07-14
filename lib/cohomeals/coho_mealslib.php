@@ -143,11 +143,18 @@ class CohoMealsLib extends TikiLib
   }
   
 
-
-  function load_diners($mealid) 
+  // used in coho_meals-view_entry.php
+  // type "T" take-home plate is no longer an option, but we leave it here to
+  //    maintain compatibility with previously-created meals
+  function load_diners($mealid, $mealtype) 
   {
-    $query = "SELECT cal_login, cal_type FROM coho_meals_meal_participant " .
-      "WHERE cal_id = $mealid AND (cal_type = 'M' OR cal_type = 'T')";
+    if ($mealtype == "recurring") {
+        $query = "SELECT userId FROM cohomeals_participant_recurrence" .
+            " WHERE userId = $mealid AND participant_type = 'M'";
+    } else {
+        $query = "SELECT cal_login FROM cohomeals_meal_participant " .
+            "WHERE cal_id = $mealid AND (cal_type = 'M' OR cal_type = 'T')";
+    }
     $allrows = $this->fetchAll($query);
 
     $ordering = array ();
@@ -161,7 +168,8 @@ class CohoMealsLib extends TikiLib
 
     foreach( $allrows as $row ) {
 
-      $cur_login = $row["cal_login"];
+      if ($mealtype == "recurring") $cur_login = $row["userId"];
+      else $cur_login = $row["cal_login"];
 
       // get building number from unit number
       $unit = $this->get_user_preference($cur_login, 'unitNumber', '0');
@@ -176,7 +184,7 @@ class CohoMealsLib extends TikiLib
       $tmp_ret[$i++] = array(
 			     "username" => $cur_login,
 			     "realName" => $this->get_user_preference($cur_login, 'realName', $cur_login),
-			     "dining" => $row["cal_type"],
+			     "dining" => "M", // no more take-home plate
 			     "building" => $building
 			     );
       $tmp = $i-1;
@@ -372,6 +380,19 @@ class CohoMealsLib extends TikiLib
     return $ret;
   }
 
+  function get_billing_group_name( $bgnumber ) {
+      $bgname = NULL;
+
+      $sql = "SELECT billingGroupName FROM cohomeals_billing_groups" .
+          " WHERE billingGroupId = $bgnumber";
+      $res = $this->query($sql);
+      $info = $res->fetchRow();
+      if ( $info["billingGroupName"] ) {
+          $bgname = $info["billingGroupName"];
+      }
+      
+      return $bgname;
+  }
 
 }
 $cohomealslib = new CohoMealsLib;
