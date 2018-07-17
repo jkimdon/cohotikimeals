@@ -1,7 +1,7 @@
 <span style="font-family:Arial;">
 
 <span style="font-size: 1.5em;">
-<p>Here is the weekly list of items from the calendar found at: <a href="https://www.cohoecovillage.org/tiki">https://www.cohoecovillage.org/tiki</a></p>
+<p>Here is the weekly list of items from the calendar found at: <a href="https://tiki.cohoecovillage.org">https://tiki.cohoecovillage.org</a></p>
 </span>
 
 {section name=d loop=$printDay}
