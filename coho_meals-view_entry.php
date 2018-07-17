@@ -40,6 +40,7 @@ if ( isset($_REQUEST["id"] )) {
     $smarty->display("error.tpl");
     die;
 }
+$smarty->assign('mealtype', $mealtype);
 
 if ( empty ( $mealid ) || $mealid <= 0 || ! is_numeric ( $mealid ) ) {
   $smarty->assign('errortype', 'Invalid entry id.');
@@ -57,6 +58,11 @@ else {
 }
 
 $cohomeals = new CohoMealsLib;
+$cohomeals->set_user( $user );
+$cohomeals->set_meal_admin( $is_meal_admin );
+$smarty->assign('is_meal_admin', $is_meal_admin);
+
+$smarty->assign('loggedinuser', $user);
 
 /// load meal info
 $meal = array();
@@ -71,11 +77,11 @@ $smarty->assign('mealnotes', $meal["notes"]);
 
 $smarty->assign('mealdatetime', $mealdatetime );
 $smarty->assign('mealcancelled', $meal["cancelled"]);
-$signup_datetime = strtotime("-".$meal["signup_deadline"]." days",$mealdatetime);
+$signupdatetime = strtotime("-".$meal["signup_deadline"]." days",$mealdatetime);
 $smarty->assign('signup_deadline', $signup_datetime);
 
 $past_deadline = false;
-if ( $signup_deadline < time() ) $past_deadline = true;
+if ( $signupdatetime < time() ) $past_deadline = true; 
 $can_signup = !$past_deadline || $is_meal_admin; 
 $smarty->assign('past_deadline', $past_deadline);
 $smarty->assign('can_signup', $can_signup);
@@ -91,7 +97,11 @@ if ( $chefusername == "" ) {
 }  
 else {
   $smarty->assign('has_head_chef', '1');
-  $smarty->assign('mealheadchef', $cohomeals->get_user_preference($chefusername, 'realName', $chefusername));
+  $mealheadchef=array();
+  $mealheadchef["username"] = $chefusername;
+  $mealheadchef["realName"] = $cohomeals->get_user_preference($chefusername, 'realName', $chefusername);
+  $smarty->assign('mealheadchef', $mealheadchef);
+  $smarty->assign('headchefbuddy', $cohomeals->is_signer($chefusername, $user));
 }
 
 if ( $mealtype == "recurring" ) $crew = $cohomeals->load_recurring_crew($mealid);
@@ -99,15 +109,17 @@ else $crew = $cohomeals->load_crew($mealid);
 $smarty->assign('crew', $crew);
 
 
-$diners = $cohomeals->load_diners($mealid, $mealtype);
+$diners = $cohomeals->load_diners($mealid, $mealtype, $user);
 $smarty->assign('diners', $diners);
-//begin debug
-echo "diners: <br>";
-foreach( $diners as $diner ){
-  echo $diner["username"] . ": " . $diner["realName"] . ", " . $diner["dining"] . "<br>";
-}
-// end debug
 
+$guest_diners = $cohomeals->load_guests($mealid, 'M', $mealtype); // for now not ready to have recurring guests
+$smarty->assign('guest_diners', $guest_diners);
+
+$buddies = $cohomeals->load_buddies_signees($user, $is_meal_admin, true); //true for including self
+$smarty->assign('buddies', $buddies);
+
+$foodlimits = $cohomeals->load_food_restrictions_by_meal($mealid);
+$smarty->assign('foodlimits', $foodlimits);
 
 $smarty->assign('mid', 'coho_meals-view_entry.tpl');
 $smarty->display("tiki.tpl");

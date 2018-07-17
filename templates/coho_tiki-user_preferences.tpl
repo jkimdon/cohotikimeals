@@ -144,48 +144,7 @@
   
   </table>
 {/tab}
-{tab name="{tr}Preferences{/tr}"}
-  <table class="formcolor">
-    <tr>
-      <th colspan="2">{tr}Meal program{/tr}</th>
-    </tr>
 
-    <tr>
-      <td>Buddies</td>
-      <td>
-      </td>
-    </tr>
-
-    <tr>
-      <td>Food restrictions</td>
-      <td>
-
-       <p>Your personal food restrictions are as follows. Adapt as
-        needed, though please limit yourself to restrictions rather
-        than preferences since it can be a lot of work for chefs to
-        accommodate food needs for many people.</p>
-
-  	<p> Please include details in the comments section such as
-  	suggested alternatives, if small amounts are ok, or anything
-  	else that might be useful for a chef who is trying to
-  	accommodate your needs.</p>
-
-      </td>
-    </tr>
-
-    <tr>
-      <td>Meal subscriptions</td>
-      <td>
-      </td>
-    </tr>
-    
-
-    <tr>
-      <td colspan="2" class="input_submit_container"><input type="submit" name="new_prefs" value="{tr}Save changes{/tr}" /></td>
-    </tr>
-  </table>
-</form>
-{/tab}
 {/if}
 
 {if $prefs.change_password neq 'n' or ! ($prefs.login_is_email eq 'y' and $userinfo.login neq 'admin')}

@@ -14,7 +14,42 @@ if (strpos($_SERVER["SCRIPT_NAME"], basename(__FILE__)) !== false) {
 
 class CohoMealsLib extends TikiLib
 {
+    protected $loggedinuser = "";
+    protected $is_meal_admin = false;
 
+    function set_meal_admin( $amI ) {
+        if ( $amI == true ) $this->is_meal_admin = true;
+        else $this->is_meal_admin = false;
+    }
+
+    function set_user( $usertoset="" ) {
+        if ( isset($usertoset) )
+            $this->loggedinuser = (string)filter_var( $usertoset, FILTER_SANITIZE_STRING );
+    }
+
+    // used in edit participation handler
+    function create_override_from_recurrence( $recurrenceId, $unixmealdate ) {
+
+        $newmealid = $this->getOne("SELECT MAX(cal_id) AS maxid FROM cohomeals_meal") + 1;
+
+        $sql = "SELECT which_day, which_week, meal_title, time, base_price, signup_deadline, menu " .
+            "FROM cohomeals_meal_recurrence WHERE recurrenceId = $recurrenceId";
+        $meal = $this->fetchAll($sql);
+        if ( !$meal ) return false;
+        $mealdate = $this->date_format("%Y%m%d", $unixmealdate);
+        
+        $sql = "INSERT INTO cohomeals_meal (cal_id, cal_date, cal_time, cal_signup_deadline, cal_base_price, " .
+            "cal_max_diners, cal_menu, cal_notes, cal_cancelled, meal_title, recurrenceId, recurrence_override) " .
+            "VALUES (";
+        $sql .= $newmealid . ", " . $mealdate . ", " . $meal[0]["time"] . ", " . $meal[0]["signup_deadline"] . ", " .
+            $meal[0]["base_price"] . ", 0, '" . $meal[0]["menu"] . "', '', 0, '" . $meal[0]["meal_title"] . "', " . $recurrenceId . ", true)";
+        $result = $this->query($sql);
+        
+        if ($result) return $newmealid;
+        else return false;
+    }
+
+    
   // used in add_coho_meal_items in calendarlib 
   function has_head_chef( $mealid ) 
   {
@@ -102,12 +137,18 @@ class CohoMealsLib extends TikiLib
       $crew[$i]["job"] = $row['cal_notes'];
 
       if ( preg_match( '/^none/', $crew[$i]["username"] ) ) {
-	$crew[$i]["fullname"] = "<font color=\"#DD0000\">STILL NEEDED</font>";
-	$crew[$i]["has_volunteer"] = 0;
+          $crew[$i]["fullname"] = "<font color=\"#DD0000\">STILL NEEDED</font>";
+          $crew[$i]["has_volunteer"] = 0;
+          $crew[$i]["mybuddy"] = false;
       } else {
-	$crew[$i]["fullname"] = $this->get_user_preference($crew[$i]["username"], 'realName', $crew[$i]["username"]);
-	$crew[$i]["has_volunteer"] = 1;
-	}
+          $crew[$i]["fullname"] = $this->get_user_preference($crew[$i]["username"], 'realName', $crew[$i]["username"]);
+          $crew[$i]["has_volunteer"] = 1;
+          $mybuddy = false;
+          if ( $this->is_meal_admin ) $mybuddy = true;
+          else if ( !isset($this->loggedinuser) ) $mybuddy = false;
+          else $mybuddy = $this->is_signer( $cur_login, $this->loggedinuser );
+          $crew[$i]["mybuddy"] = $mybuddy;
+      }
       $i++;
     }
 
@@ -144,7 +185,7 @@ class CohoMealsLib extends TikiLib
   
 
   // used in coho_meals-view_entry.php
-  // type "T" take-home plate is no longer an option, but we leave it here to
+  // type "T" take-home plate is no longer an option, but we leave it here (read only) to
   //    maintain compatibility with previously-created meals
   function load_diners($mealid, $mealtype) 
   {
@@ -173,22 +214,27 @@ class CohoMealsLib extends TikiLib
 
       // get building number from unit number
       $unit = $this->get_user_preference($cur_login, 'unitNumber', '0');
-      if ($unit == 0) $building = 10;
+      if (!$unit || $unit == 0) $building = 10;
       else {
-	$temp = (int)($unit / 10);
-	$temp2 = (int)($temp / 10);
-	$building = $temp - 10*$temp2;
+          $temp = (int)($unit / 10);
+          $temp2 = (int)($temp / 10);
+          $building = $temp - 10*$temp2;
       }
       $ordering[$building][$i] = $i;
 
+      $mybuddy = false;
+      if ( !isset($this->loggedinuser) ) $mybuddy = false;
+      else $mybuddy = $this->is_signer( $cur_login, $this->loggedinuser );
+      if ( $this->is_meal_admin ) $mybuddy = true;
+      
       $tmp_ret[$i++] = array(
 			     "username" => $cur_login,
 			     "realName" => $this->get_user_preference($cur_login, 'realName', $cur_login),
 			     "dining" => "M", // no more take-home plate
+                 "mybuddy" => $mybuddy, // shows if user can sign up this person cur_login
 			     "building" => $building
 			     );
       $tmp = $i-1;
-      echo $tmp_ret[$tmp]["realName"] . ": " . $tmp_ret[$tmp]["building"] . " = " . $unit . "<br>";//debug
     }
 
 
@@ -198,7 +244,7 @@ class CohoMealsLib extends TikiLib
       sort( $ordering[$i] );
       $b = $ordering[$i];
       foreach ( $b as $key => $value ) {
-	$ret[$newcount++] = $tmp_ret[$value];
+          $ret[$newcount++] = $tmp_ret[$value];
       }
     }
     
@@ -206,8 +252,164 @@ class CohoMealsLib extends TikiLib
     
   }
 
+  // used in load_food_restrictions_by_meal
+  function is_dining( $username, $mealid ) {
+  
+      $dining = false;
+
+      if ($mealid != 0) {
+          $sql = "SELECT cal_type " .
+              "FROM cohomeals_meal_participant" . 
+              " WHERE cal_id = $mealid AND cal_login = '$username'" .
+              " AND (cal_type = 'M' OR cal_type = 'T')"; // check T for backwards compatibility
+          if ( $this->getOne( $sql ) ) $dining = true;
+      }
+      return $dining;
+  }
+
+
+  // used in load buddies
+  function getAllMealUsers() { // find the people actively in the meal program
+      $myusers = new UsersLib;
+      $groupnames = array();
+      $groupnames[0] = "CoHo owners";
+      $groupnames[1] = "on-site renters";
+      $groupnames[2] = "Official Friend (active)";
+      $groupnames[3] = "Associate Member (active)";
+      $mealusers = $myusers->get_users( 0, -1, 'login_asc', '', '', true, $groupnames, '', false, false, false); 
+      return $mealusers;
+  }
+
+  // not used yet
+  function isOnMealPlan( $checklogin ) { // debugging something else. fix this after that works
+      return true;
+  }
+  
+  
+  /////////////////////////////////
+  // buddy functions
+
+  function is_signer( $signee, $potential_signer ) {
+      $ret = false;
+
+      if ( $signee == $potential_signer ) {
+          $ret = true; 
+      }
+      if ( $this->is_meal_admin ) {
+          $ret = true;
+      }
+      
+      $sql = "SELECT cal_signer FROM cohomeals_buddy " .
+          "WHERE cal_signee = '$signee' AND cal_signer = '$potential_signer'";
+      if ( $res = $this->getOne( $sql ) ) {
+          $ret = true; 
+      }
+      return $ret;
+  }
+
+  // used in meal details page
+  function load_buddies_signees( $theuser, $theuserisadmin, $include_self=false ) {
+      $ret = array ();
+      $i = 0;
+      $buddies = array();
+      
+      if ( $theuserisadmin ) {
+          $buddyinfo = $this->getAllMealUsers(); 
+          foreach ( $buddyinfo['data'] as $buddy ) { 
+              $realname = $this->get_user_preference($buddy['user'], 'realName', $buddy['user']);
+              if ( $realname == "" ) $realname = $buddy['user'];
+              $buddies[$i++] = array( "username" => $buddy['user'], "realName" => $realname );
+          }
+      } else {
+          $sql = "SELECT cal_signee FROM webcal_buddy " .
+              "WHERE cal_signer = '$theuser'";
+          $allrows = $this->fetchAll($sql);
+          foreach ($allrows as $buddy) {
+              $realname = $this->get_user_preference($buddy["cal_signee"], 'realName', $buddy["cal_signee"]);
+              if ( $realname == "" ) $realname = $buddy["cal_signee"];
+              $buddies[$i++] = array( "username" => $buddy["cal_signee"], "realName" => $realname );
+          }          
+          if ( $include_self == true ) {
+              $realname = $this->get_user_preference($theuser, 'realName', $theuser);
+              if ( $realname == "" ) $realname = $theuser;              
+              $buddies[$i++] = array( "username" => $theuser, "realName" => $realname );
+          }
+      }
+      return $buddies;
+  }
   
 
+
+  //
+  /////////////////////////////////
+
+  // used in meal detail page
+  function load_guests( $mealid, $participation_type, $mealtype="regular" ) { // only works for regular meals at this point
+      $guests = array();
+
+      if ($mealtype != "regular") {
+          return false;
+      }
+      
+      $sql = "SELECT cal_fullname, cal_host, meal_multiplier " .
+          "FROM cohomeals_meal_guest " .
+          "WHERE cal_meal_id = $mealid AND cal_type = '$participation_type'"; 
+      $allrows = $this->fetchAll($sql);
+      foreach( $allrows as $row ) { 
+          $hostusername = $row["cal_host"];
+          $hostrealname = $this->get_user_preference($hostusername, 'realName', $hostusername);
+          if ( $hostrealname == "" ) $hostrealname = $hostusername;
+          $guests[] = array( "realName" => $row["cal_fullname"], "hostusername" => $hostusername, "hostrealname"=>$hostrealname, "meal_multiplier"=>$row["meal_multiplier"]);
+      }
+      return $guests;
+  }
+  
+  
+  // used in meal detail page
+  function load_food_restrictions_by_meal($mealid=0) {
+
+      if ($mealid==0) return false;
+      
+      $foodrestrictions = array();
+      
+      /// common restrictions listed first
+      $listed_first = array();
+      $listed_first[0] = "dairy";
+      $listed_first[1] = "wheat/gluten";
+      $listed_first[2] = "spicy";
+      $listed_first[3] = "bell peppers";
+
+      $i = 0;
+      foreach( $listed_first as $food) {
+          $sql = "SELECT cal_login, cal_comments FROM cohomeals_food_prefs " .
+              "WHERE cal_food LIKE '$food'";
+          $allrows = $this->fetchAll($sql);
+          foreach( $allrows as $eater ) {
+              $eaterlogin = $eater["cal_login"];
+              if ( $this->is_dining( $eaterlogin, $mealid ) ) {
+                  $realname = $this->get_user_preference($eaterlogin, 'realName', $eaterlogin);
+                  if ( $realname == "" ) $realname = $eaterlogin;
+                  $foodrestrictions[] = array( "user" => $eaterlogin, "realName" => $realname, "food" => $food, "comments" => $eater["cal_comments"]);
+              }
+          }
+      } 
+
+      ///  now list all the other restrictions
+      $sql = "SELECT cal_food, cal_login, cal_comments FROM cohomeals_food_prefs" .
+          " WHERE cal_food NOT IN ('" . implode( "', '", $listed_first ) . "') ORDER BY cal_food";
+      $allrows = $this->fetchAll($sql);
+      foreach( $allrows as $eater ) {
+          $eaterlogin = $eater["cal_login"];
+          if ( $this->is_dining( $eaterlogin, $mealid ) ) {
+              $realname = $this->get_user_preference($eaterlogin, 'realName', $eaterlogin);
+              if ( $realname == "" ) $realname = $eaterlogin; 
+              $foodrestrictions[] = array( "user" => $eaterlogin, "realName" => $realname, "food" => $eater["cal_food"], "comments" => $eater["cal_comments"]);
+          }
+      }
+      
+      return $foodrestrictions;
+  }
+  
 
   // output unix timestamp
   function get_day( $ref_date_YYYYMMDD, $num_days ) 
@@ -244,7 +446,8 @@ class CohoMealsLib extends TikiLib
     return $eatwork;
   }
 
-  
+
+  // used in meal view entry
   function load_meal_info($mealtype, $mealid, &$mealinfo)
   {
       if ($mealtype == 'recurring') {
@@ -380,6 +583,7 @@ class CohoMealsLib extends TikiLib
     return $ret;
   }
 
+  // used in user preferences view
   function get_billing_group_name( $bgnumber ) {
       $bgname = NULL;
 
@@ -395,7 +599,8 @@ class CohoMealsLib extends TikiLib
   }
 
 }
-$cohomealslib = new CohoMealsLib;
+
+//$cohomealslib = new CohoMealsLib;
 
 
 

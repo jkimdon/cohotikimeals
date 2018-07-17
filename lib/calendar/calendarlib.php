@@ -646,19 +646,19 @@ class CalendarLib extends TikiLib
           $third = TIkiLib::make_time(0,0,0, date('m', $tmp), date('d', $tmp), date('Y', $tmp));
           $tmp = strtotime("Fourth " . $which_day . " of this month", $i);          
           $fourth = TIkiLib::make_time(0,0,0, date('m', $tmp), date('d', $tmp), date('Y', $tmp));
-          if ($i == $first) $which_wk = 1;
-          elseif ($i == $second) $which_wk = 2;
-          elseif ($i == $third) $which_wk = 3;
-          elseif ($i == $fourth) $which_wk = 4;
-          else $which_wk = 5;
+          if ($i == $first) $which_wk = "First";
+          elseif ($i == $second) $which_wk = "Second";
+          elseif ($i == $third) $which_wk = "Third";
+          elseif ($i == $fourth) $which_wk = "Fourth";
+          else $which_wk = "Fifth";
 
           if (TikiLib::date_format("%m", $i) % 2) $which_month = 2;
           else $which_month = 1;
 
-          $query = "SELECT `recurrenceId`, `time`, `base_price`, `menu`, signup_deadline";
+          $query = "SELECT `recurrenceId`, `time`, `base_price`, `menu`, `meal_title`, `signup_deadline`";
           $query .= " FROM `cohomeals_meal_recurrence`";
           $query .= " WHERE `which_day`='" . $which_day ."'";
-          $query .= " AND `which_week`=" . $which_wk;
+          $query .= " AND `which_week`='" . $which_wk  . "'";
           $query .= " AND `which_month` IN (0," . $which_month . ")";
           $query .= " AND (`startPeriod` <= $i) AND (`endPeriod` = 0 OR `endPeriod` >= $i)";
           $query .= $overridden;

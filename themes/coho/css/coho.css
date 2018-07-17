@@ -7121,7 +7121,7 @@ div.cvsup {
   color: #515151;
 }
 .even {
-  background: #f9f9f9;
+  background: #efe1e1;
   color: #515151;
 }
 .objectperms .checkBoxHeader:nth-of-type(odd) > div > label,
@@ -8648,11 +8648,26 @@ footer.footer {
     display: block; /* Display block instead of inline */
     transition: 0.3s; /* Transition effects on hover (color) */
 }
+.overlay c {
+    padding: 8px;
+    text-decoration: none;
+    font-size: 18px;
+    color: #e6e6e6;
+    transition: 0.3s; /* Transition effects on hover (color) */
+}
+.overlay d {
+    padding: 8px;
+    text-decoration: none;
+    font-size: 18px;
+    color: #000000;
+    transition: 0.3s; /* Transition effects on hover (color) */
+}
 
 /* When the height of the screen is less than 450 pixels, change the font-size of the links and position the close button again, so they don't overlap */
 @media screen and (max-height: 450px) {
     .overlay a {font-size: 20px}
     .overlay b {font-size: 18px}
+    .overlay c d {font-size: 16px}
 }
 
 /******end slide-in overlay*/
