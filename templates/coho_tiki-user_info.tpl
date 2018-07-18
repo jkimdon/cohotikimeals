@@ -12,7 +12,14 @@
 {tabset name="coho_meals_user_preference"}
 
 {tab name="Meal Account Finances"}
-There is nothing to see here
+     <h1>Financial Log for {$billingName}</h1><br>
+     (Most recent 100 entries)<br><br>
+     <table class="finhistory">
+     <tr><th>Transaction date</th><th>Description</th><th>Associated meal</th><th>Notes</th><th>Amount</th><th>Running balance</th></tr>
+     {foreach item=logline from=$finlog}
+        <tr class="{cycle values="even,odd"}"><td>{$logline.cal_timestamp}</td><td>{$logline.cal_description}</td><td>{$logline.cal_meal_id}</td><td>{$logline.cal_text}</td><td>{($logline.cal_amount/100)|string_format:"\$%.2f"}</td><td>{($logline.cal_running_balance/100)|string_format:"\$%.2f"}</tr>
+     {/foreach}
+     </table>     
 {/tab}
 
 {tab name="Food preferences"}

@@ -30,6 +30,36 @@ if ($userwatch != $user) {
 	}
 }
 
+
+$mealperms = Perms::get(array( 'type' => 'meals' ));
+$is_meal_admin = $mealperms->admin_meals;
+
+$cohomeals = new CohoMealsLib;
+$cohomeals->set_user( $user );
+$cohomeals->set_meal_admin( $is_meal_admin );
+
+// find the billing group
+$billingId = $cohomeals->get_billingId( $user );
+if (!$billingId) {
+    $smarty->assign('errortype', 'Bad billing group ID.');
+    $smarty->display("error.tpl");
+    die;
+}
+$billingName = $cohomeals->get_billing_group_name( $billingId );
+$smarty->assign('billingName', $billingName);
+
+// legacy billing group is to write the name not the number, so we support both
+$billing_sql = "cal_billing_group='$billingId' OR cal_billing_group='$billingName'";
+
+/// for now, just show the last 100 entries instead of allowing searching
+
+$sql = "SELECT cal_login, cal_description, cal_meal_id, cal_amount, cal_running_balance, cal_text, cal_timestamp " .
+    "FROM cohomeals_financial_log WHERE " . $billing_sql .
+    " ORDER BY cal_timestamp DESC LIMIT 100"; 
+$finlog = $cohomeals->fetchAll($sql);
+$smarty->assign('finlog', $finlog);
+
+
 $smarty->assign('mid', 'coho_tiki-user_info.tpl');
 $smarty->display("tiki.tpl");
 

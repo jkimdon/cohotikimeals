@@ -8671,3 +8671,18 @@ footer.footer {
 }
 
 /******end slide-in overlay*/
+
+
+/***** for displaying meal financial history **/
+.finhistory {
+    color: #000000;
+    border: 1px solid #000000;
+}
+.finhistory td,th {
+    padding: 5px 10px;
+    text-align: left;
+    border: 1px solid #000000;
+}
+
+
+/*** end meal financial history **/

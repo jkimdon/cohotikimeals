@@ -18,10 +18,6 @@
        <p></p>
 
        <div class="wikitext">
-       	    {if $has_head_chef eq '0'}
-            	<p>***Note: If you (or a buddy) are subscribed to meals on this day of the week and you want want to prevent yourself (or a buddy) from being automatically signed up for this meal only, click <a href="block_diner.php?id=$mealid">here</a>.</p> 
-      	    {/if}
-
        
        <table class="normal">
          <caption>Meal information</caption>

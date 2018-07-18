@@ -598,6 +598,14 @@ class CohoMealsLib extends TikiLib
       return $bgname;
   }
 
+  // used in coho_meals-user_info
+  function get_billingId( $theuser ) {
+      $bgId = $this->get_user_preference( $theuser, 'billingGroup' );
+      if ($bgId > 0) return $bgId;
+      else return false;
+  }
+
+  
 }
 
 //$cohomealslib = new CohoMealsLib;
