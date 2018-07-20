@@ -31,9 +31,9 @@ $myurl = 'coho_meals-view_entry.php';
 
 $mealtype = "regular";
 if ( isset($_REQUEST["id"] )) {
-  $mealid = $_REQUEST["id"];
+  $mealId = $_REQUEST["id"];
 } elseif ( isset($_REQUEST["recurrenceId"])) {
-    $mealid = $_REQUEST["recurrenceId"];
+    $mealId = $_REQUEST["recurrenceId"];
     $mealtype = "recurring";
 } else {
     $smarty->assign('errortype', 'Invalid entry id.');
@@ -42,13 +42,13 @@ if ( isset($_REQUEST["id"] )) {
 }
 $smarty->assign('mealtype', $mealtype);
 
-if ( empty ( $mealid ) || $mealid <= 0 || ! is_numeric ( $mealid ) ) {
+if ( empty ( $mealId ) || $mealId <= 0 || ! is_numeric ( $mealId ) ) {
   $smarty->assign('errortype', 'Invalid entry id.');
   $smarty->display("error.tpl");
   die;
 } 
 
-$smarty->assign('mealid', $mealid);
+$smarty->assign('mealId', $mealId);
 
 if ( isset($_REQUEST["mealdatetime"]) ) $mealdatetime = $_REQUEST["mealdatetime"];
 else {
@@ -66,7 +66,7 @@ $smarty->assign('loggedinuser', $user);
 
 /// load meal info
 $meal = array();
-if ( !$cohomeals->load_meal_info($mealtype, $mealid, $meal) ) {
+if ( !$cohomeals->load_meal_info($mealtype, $mealId, $meal) ) {
     $smarty->assign('errortype', 'Could not find meal.');
     $smarty->display("error.tpl");
     die;
@@ -83,14 +83,16 @@ $smarty->assign('signup_deadline', $signup_datetime);
 $past_deadline = false;
 if ( $signupdatetime < time() ) $past_deadline = true; 
 $can_signup = !$past_deadline || $is_meal_admin; 
+if ( $cohomeals->paperwork_done( $mealId ) ) $can_signup = false;
+if ( $cohomeals->is_charged( $mealId ) ) $can_signup = false;
 $smarty->assign('past_deadline', $past_deadline);
 $smarty->assign('can_signup', $can_signup);
 
 $smarty->assign('adult_price', $cohomeals->price_to_str($cohomeals->get_adjusted_price($meal["base_price"], "A")));
 $smarty->assign('kid_price', $cohomeals->price_to_str($cohomeals->get_adjusted_price($meal["base_price"], "K")));
 
-if ( $mealtype == "recurring" ) $chefusername = $cohomeals->recurring_head_chef( $mealid );
-else $chefusername = $cohomeals->has_head_chef( $mealid );
+if ( $mealtype == "recurring" ) $chefusername = $cohomeals->recurring_head_chef( $mealId );
+else $chefusername = $cohomeals->has_head_chef( $mealId );
 if ( $chefusername == "" ) {
   $smarty->assign('has_head_chef', '0');
   $smarty->assign('mealheadchef', 'No head chef');
@@ -104,22 +106,33 @@ else {
   $smarty->assign('headchefbuddy', $cohomeals->is_signer($chefusername, $user));
 }
 
-if ( $mealtype == "recurring" ) $crew = $cohomeals->load_recurring_crew($mealid);
-else $crew = $cohomeals->load_crew($mealid);
+if ( $mealtype == "recurring" ) $crew = $cohomeals->load_recurring_crew($mealId);
+else $crew = $cohomeals->load_crew($mealId);
 $smarty->assign('crew', $crew);
 
 
-$diners = $cohomeals->load_diners($mealid, $mealtype, $user);
+$diners = $cohomeals->load_diners($mealId, $mealtype, $user);
 $smarty->assign('diners', $diners);
 
-$guest_diners = $cohomeals->load_guests($mealid, 'M', $mealtype); // for now not ready to have recurring guests
-$smarty->assign('guest_diners', $guest_diners);
+if ( $mealtype == "regular" ) {
+    $income = $cohomeals->diner_income( $mealId, false );
+    $smarty->assign( 'income', $income );
+    $numdiners = $cohomeals->count_diners( $mealId, false );
+    $smarty->assign( 'numdiners', $numdiners );
+    $wtddiners = $cohomeals->count_diners( $mealId, true );
+    $smarty->assign( 'wtddiners', $wtddiners );
+}
+
+$guest_diners = $cohomeals->load_guests($mealId, 'M', $mealtype); // for now not ready to have recurring guests
+$smarty->assign('guest_diners', $guest_diners); 
 
 $buddies = $cohomeals->load_buddies_signees($user, $is_meal_admin, true); //true for including self
 $smarty->assign('buddies', $buddies);
 
-$foodlimits = $cohomeals->load_food_restrictions_by_meal($mealid);
+$foodlimits = $cohomeals->load_food_restrictions_by_meal($mealId);
 $smarty->assign('foodlimits', $foodlimits);
+
+$smarty->assign( 'paperwork_done', $cohomeals->paperwork_done($mealId) );
 
 $smarty->assign('mid', 'coho_meals-view_entry.tpl');
 $smarty->display("tiki.tpl");

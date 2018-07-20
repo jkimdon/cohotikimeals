@@ -25,14 +25,14 @@ $cohomeals = new CohoMealsLib;
 $cohomeals->set_user( $user );
 $cohomeals->set_meal_admin( $is_meal_admin );
 
-if (!isset($_REQUEST["id"]) || !isset($_REQUEST["unixmealdate"]) || !isset($_REQUEST["action"]) || !isset($_REQUEST["type"]) || !isset($_REQUEST["guestName"]) || !isset($_REQUEST["host"]) ) {
+if (!isset($_REQUEST["id"]) || !isset($_REQUEST["mealdatetime"]) || !isset($_REQUEST["action"]) || !isset($_REQUEST["type"]) || !isset($_REQUEST["guestName"]) || !isset($_REQUEST["host"]) ) {
     $smarty->assign('errortype', 'Inappropriate variables.');
     $smarty->display("error.tpl");
     die;
 }
 
 $mealId = $_REQUEST["id"];
-$unixmealdate = $_REQUEST["unixmealdate"];
+$mealdatetime = $_REQUEST["mealdatetime"];
 $mealtype = $_REQUEST["mealtype"];
 $action = $_REQUEST["action"];
 $participation_type = $_REQUEST["type"];
@@ -46,14 +46,14 @@ else $meal_multiplier = 1;
 
 // if recurring, make a new overriding meal with same as recurring and then recall this handler on the new meal to make the changes
 if ( $mealtype == "recurring" ) {
-    $newMealId = $cohomeals->create_override_from_recurrence( $mealId, $unixmealdate );
+    $newMealId = $cohomeals->create_override_from_recurrence( $mealId, $mealdatetime );
     if (!$newMealId) {
         $smarty->assign('errortype', 'Error creating meal.');
         $smarty->display("error.tpl");
         die;
         }
     $stripped_guestname = preg_replace('/\s+/', '+', $guestname);
-    header("Location: coho_meals-signup_guest.php?$guestName=" . $stripped_guestname . "&id=" . $newMealId . "&unixmealdate=" . $unixmealdate . "&mealtype=regular&action=" . $action . "&type=" . $participation_type . "&host=" . $host . "&olduser=" . $olduer . "&job=" . $job);
+    header("Location: coho_meals-signup_guest.php?$guestName=" . $stripped_guestname . "&id=" . $newMealId . "&mealdatetime=" . $mealdatetime . "&mealtype=regular&action=" . $action . "&type=" . $participation_type . "&host=" . $host . "&olduser=" . $olduer . "&job=" . $job);
     die;
 }
 
@@ -80,7 +80,7 @@ if ( $mealtype == "regular" ) {
     }
 }
 
-$nexturl = "coho_meals-view_entry.php?id=" . $mealId . "&mealdatetime=" . $unixmealdate;
+$nexturl = "coho_meals-view_entry.php?id=" . $mealId . "&mealdatetime=" . $mealdatetime;
 header("Location: $nexturl");
 die;
 

@@ -26,26 +26,36 @@ $cohomeals->set_user( $user );
 $cohomeals->set_meal_admin( $is_meal_admin );
 
 $mealId = $_REQUEST["id"];
-$unixmealdate = $_REQUEST["unixmealdate"];
+$mealdatetime = $_REQUEST["mealdatetime"];
 $mealtype = $_REQUEST["mealtype"];
 $action = $_REQUEST["action"];
 $participation_type = $_REQUEST["type"];
 $people_read = $_REQUEST["people"]; 
 $olduser = $_REQUEST["olduser"];
 $who=array();
-if (!is_array($people_read)) $who[0] = $people_read;
-else $who = $people_read;
+if (!is_array($people_read)) {
+    $who[0] = $people_read;
+    $people_url = "&people=" . $people_read;
+}
+else {
+    $who = $people_read;
+    $people_url = '';
+    foreach( $who as $p ) {
+        $people_url .= "&people[]=" . $p;
+    }
+}
 $job = $_REQUEST["job"]; 
 
 // if recurring, make a new overriding meal with same as recurring and then recall this handler on the new meal to make the changes
 if ( $mealtype == "recurring" ) {
-    $newMealId = $cohomeals->create_override_from_recurrence( $mealId, $unixmealdate );
+    $newMealId = $cohomeals->create_override_from_recurrence( $mealId, $mealdatetime );
     if (!$newMealId) {
         $smarty->assign('errortype', 'Error creating meal.');
         $smarty->display("error.tpl");
         die;
     }
-    header("Location: coho_meals-edit_participation_handler.php?$people=" . $who . "&id=" . $newMealId . "&unixmealdate=" . $unixmealdate . "&mealtype=regular&action=" . $action . "&type=" . $participation_type . "&olduser=" . $olduser . "&job=" . $job);
+    $joburl = "&job=" . preg_replace('/\s+/', '+', $job);
+    header("Location: coho_meals-edit_participation_handler.php?id=" . $newMealId . "&mealdatetime=" . $mealdatetime . "&mealtype=regular&action=" . $action . "&type=" . $participation_type . "&olduser=" . $olduser . $peopleurl . $joburl);
     die;
 }
 
@@ -103,7 +113,7 @@ if ( $mealtype == "regular" ) {
         }
     }
 }
-$nexturl = "coho_meals-view_entry.php?id=" . $mealId . "&mealdatetime=" . $unixmealdate;
+$nexturl = "coho_meals-view_entry.php?id=" . $mealId . "&mealdatetime=" . $mealdatetime;
 header("Location: $nexturl");
 die;
 

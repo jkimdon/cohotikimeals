@@ -34,4 +34,18 @@ There is nothing to see here
 There is nothing to see here
 {/tab}
 
+{if $is_meal_admin eq true}
+    {tab name="Admin finances"}
+    	 <h1>Financial logs</h1><br>
+	 (Most recent 100 entries)<br><br>
+     	 <table class="finhistory">
+     	    <tr><th>Transaction date</th><th>Billing group</th><th>Description</th><th>Associated meal</th><th>Notes</th><th>Amount</th><th>Running balance</th></tr>
+     	    {foreach item=logline from=$adminfinlog}
+               <tr class="{cycle values="even,odd"}"><td>{$logline.cal_timestamp}</td><td>{$logline.billingGroup}</td><td>{$logline.cal_description}</td><td>{$logline.cal_meal_id}</td><td>{$logline.cal_text}</td><td>{($logline.cal_amount/100)|string_format:"\$%.2f"}</td><td>{($logline.cal_running_balance/100)|string_format:"\$%.2f"}</tr>
+     	    {/foreach}
+     </table>     
+
+    {/tab}
+{/if}
+
 {/tabset}

@@ -19,7 +19,7 @@
 
        <div class="wikitext">
        
-       <table class="normal">
+       <table class="finhistory">
          <caption>Meal information</caption>
          <tr><th>Time:</th>
 		<td>{$mealdatetime|tiki_date_format:"%I:%M %p"}</td>
@@ -32,9 +32,9 @@
 	 </tr>
          <tr><th>Head chef:</th>
 	     {if $has_head_chef eq '1'}<td>{$mealheadchef.realName}
-	     	 {if ($can_signup eq true) and ($headchefbuddy eq true)} &nbsp;&nbsp;&nbsp; {button href="coho_meals-edit_participation_handler.php?people={$mealheadchef.username}&id={$mealid}&type=H&action=D&olduser={$mealheadchef.username}&mealtype={$mealtype}&unixmealdate={$mealdatetime}" _text="Remove"} {/if}</td>
+	     	 {if ($can_signup eq true) and ($headchefbuddy eq true)} &nbsp;&nbsp;&nbsp; {button href="coho_meals-edit_participation_handler.php?people={$mealheadchef.username}&id={$mealId}&type=H&action=D&olduser={$mealheadchef.username}&mealtype={$mealtype}&unixmealdate={$mealdatetime}" _text="Remove"} {/if}</td>
 	     {else}{if $can_signup eq true}
-	     	 <td>{button href="coho_meals-edit_participation_handler.php?people={$loggedinuser}&id={$mealid}&type=H&action=A&mealtype={$mealtype}&unixmealdate={$mealdatetime}" _text="Add me"}
+	     	 <td>{button href="coho_meals-edit_participation_handler.php?people={$loggedinuser}&id={$mealId}&type=H&action=A&mealtype={$mealtype}&unixmealdate={$mealdatetime}" _text="Add me"}
 
 		     <a class="btn btn-default" onclick="openBuddyHead()">Add buddy</a>
 		     <div id="myBuddyHead" class="overlay">
@@ -46,7 +46,7 @@
 	     	  	      		 <input type="checkbox" name="people[]" value="{$buddy.username}">{$buddy.realName}<br>
 	     		        {/foreach}</b>
 	     		  	<p align="center"><input class="btn btn-default" type="submit" value="Submit"/></p>
-				<input type="hidden" name="id" value="{$mealid}"/>
+				<input type="hidden" name="id" value="{$mealId}"/>
 			  	<input type="hidden" name="action" value="A"/>
 			  	<input type="hidden" name="type" value="H"/>
 			  	<input type="hidden" name="mealtype" value="{$mealtype}"/>
@@ -75,7 +75,7 @@
 	     <tr>
 	       <td>{$mem.job}</td><td>{$mem.fullname} &nbsp;&nbsp;&nbsp;
 	       {if $mem.has_volunteer eq '0'}
-	       	     {button href="coho_meals-edit_participation_handler.php?people={$loggedinuser}&id={$mealid}&type=C&action=A&mealtype={$mealtype}&unixmealdate={$mealdatetime}&job={$mem.job}&olduser={$mem.username}" _text="Add me"}
+	       	     {button href="coho_meals-edit_participation_handler.php?people={$loggedinuser}&id={$mealId}&type=C&action=A&mealtype={$mealtype}&unixmealdate={$mealdatetime}&job={$mem.job}&olduser={$mem.username}" _text="Add me"}
       		     &nbsp;&nbsp;&nbsp;
 	     	     <a class="btn btn-default" onclick="openBuddy{$mem.username}{$mem.job|strip:''}()">Add buddy</a>
 		     <div id="myBuddy{$mem.username}{$mem.job|strip:''}" class="overlay">
@@ -87,7 +87,7 @@
 	     	  	      		 <input type="checkbox" name="people[]" value="{$buddy.username}">{$buddy.realName}<br>
 	     		        {/foreach}</b>
 	     		  	<p align="center"><input class="btn btn-default" type="submit" value="Submit"/></p>
-				<input type="hidden" name="id" value="{$mealid}"/>
+				<input type="hidden" name="id" value="{$mealId}"/>
 			  	<input type="hidden" name="action" value="A"/>
 			  	<input type="hidden" name="type" value="C"/>
 			  	<input type="hidden" name="job" value="{$mem.job}"/>
@@ -109,7 +109,7 @@
 		     
      		     &nbsp;&nbsp;&nbsp;
 	       {else} {if ($can_signup eq true) and ($mem.mybuddy eq true)}
-		   {button href="coho_meals-edit_participation_handler.php?people={$mem.username}&id={$mealid}&type=C&action=D&mealtype={$mealtype}&unixmealdate={$mealdatetime}&job={$mem.job}" _text="Remove"} {/if}
+		   {button href="coho_meals-edit_participation_handler.php?people={$mem.username}&id={$mealId}&type=C&action=D&mealtype={$mealtype}&unixmealdate={$mealdatetime}&job={$mem.job}" _text="Remove"} {/if}
 	       {/if}
 	       </td>
 	     </tr>
@@ -123,14 +123,14 @@
      		      &nbsp;&nbsp;&nbsp;
      		      <input type="submit" name="whoadd" value="Just add description"/>
 		      <input type="hidden" name="user" value="{$loggedinuser}">
-  		      <input type="hidden" name="id" value="{$mealid}">
+  		      <input type="hidden" name="id" value="{$mealId}">
       		      <input type="hidden" name="mealtype" value="{$mealtype}">
   		  </td>
 	      </form></tr> *}
 	   </table>
 	   </td>
 	 </tr>
-	 <th>Diners</th>
+    <tr><th>Diners</th>
 	 <td>
 	 {$prev_building=0}
 	 {foreach item=diner from=$diners}
@@ -145,7 +145,7 @@
 	       {$diner.realName}
 	       {if ($can_signup eq true) and ($diner.mybuddy eq true)}
    		  &nbsp;&nbsp;&nbsp;
-		  {button href="coho_meals-edit_participation_handler.php?people={$diner.username}&id={$mealid}&type=M&action=D&olduser={$diner.username}&mealtype={$mealtype}&unixmealdate={$mealdatetime}" _text="Remove"}
+		  {button href="coho_meals-edit_participation_handler.php?people={$diner.username}&id={$mealId}&type=M&action=D&olduser={$diner.username}&mealtype={$mealtype}&unixmealdate={$mealdatetime}" _text="Remove"}
 	       {/if}
 	       <br>
 	 {/foreach}
@@ -155,12 +155,12 @@
 	     	{$guest.realName} (guest of {$guest.hostrealname}) (cost multiplier = {$guest.meal_multiplier})
 	     	{if ($can_signup eq true) and ( ($guest.hostusername eq $loggedinuser) or ($is_meal_admin) )}
 	     	    &nbsp;&nbsp;&nbsp;
-		    {button href="coho_meals-signup_guest.php?guestName={$guest.realName}&id={$mealid}&type=M&action=D&host={$guest.hostusername}&mealtype={$mealtype}&unixmealdate={$mealdatetime}" _text="Remove"}<br>
+		    {button href="coho_meals-signup_guest.php?guestName={$guest.realName}&id={$mealId}&type=M&action=D&host={$guest.hostusername}&mealtype={$mealtype}&unixmealdate={$mealdatetime}" _text="Remove"}<br>
 	     	{/if}
 	     {/foreach}
 	  {/if}
      	  {if ($can_signup eq true)}
-      	     {button href="coho_meals-edit_participation_handler.php?people={$loggedinuser}&id={$mealid}&type=M&action=A&mealtype={$mealtype}&unixmealdate={$mealdatetime}" _text="Add me"}
+      	     {button href="coho_meals-edit_participation_handler.php?people={$loggedinuser}&id={$mealId}&type=M&action=A&mealtype={$mealtype}&unixmealdate={$mealdatetime}" _text="Add me"}
       	     &nbsp;&nbsp;&nbsp;
 	     <a class="btn btn-default" onclick="openBuddy()">Add buddy</a>
 	     &nbsp;&nbsp;&nbsp;	     
@@ -171,7 +171,13 @@
 
 	 {$end_common_foods=5} {* we have 4 "common" food restrictions *}
 	 {$food_count=0}
-	 <tr><th>Food restrictions</th>
+   </tr>
+   {if {$mealtype} eq "regular"}
+     <tr><th>Total diners</th>
+       <td>{$numdiners} diners, weighted equivalent of {$wtddiners} diners ({$income|string_format:"\$%.2f"} income)</td>
+     </tr>
+   {/if}
+   <tr><th>Food restrictions</th>
 	 <td>
 	 <table>
 	 <tr><th>Common restrictions</th><td>
@@ -197,6 +203,18 @@
 
        </div>
 
+<b>For the head chef:</b><br>
+<p>When your meal is complete, please complete the online summary then submit your receipts and reimbursement form to Valerie (in her CH cubby or in the purple box on her porch).</p>
+
+{if $paperwork_done} 
+  <p>Online summary for this meal has been completed. Click {button href="coho_meals-display_meal_summary.php?id={$mealId}" _text="here to view"}</p>
+{else}<p>Click {button href="coho_meals-edit_meal_summary.php?id={$mealId}&mealtype={$mealtype}&unixmealdate={$mealdatetime}" _text="here to begin the process."}</p>
+{/if}
+
+Click here to edit the meal.
+
+{***********************************************************}
+
 <div id="myBuddy" class="overlay">
 <a href="javascript:void(0)" class="closebtn" onclick="closeBuddy()">&times;</a>
   <div class="overlay-content">
@@ -206,7 +224,7 @@
 	     	  <input type="checkbox" name="people[]" value="{$buddy.username}">{$buddy.realName}<br>
 	     {/foreach}</b>
 	     <p align="center"><input class="btn btn-default" type="submit" value="Submit"/></p>
-	     <input type="hidden" name="id" value="{$mealid}"/>
+	     <input type="hidden" name="id" value="{$mealId}"/>
 	     <input type="hidden" name="action" value="A"/>
 	     <input type="hidden" name="type" value="M"/>
 	     <input type="hidden" name="mealtype" value="{$mealtype}"/>
@@ -230,7 +248,7 @@
 	     {else}<input type="hidden" name="host" value="{$loggedinuser}"/>
 	     {/if}</d>
 	     <p align="center"><input class="btn btn-default" type="submit" value="Submit"/></p>
-	     <input type="hidden" name="id" value="{$mealid}"/>
+	     <input type="hidden" name="id" value="{$mealId}"/>
 	     <input type="hidden" name="action" value="A"/>
 	     <input type="hidden" name="type" value="M"/>
 	     <input type="hidden" name="mealtype" value="{$mealtype}"/>

@@ -252,6 +252,48 @@ class CohoMealsLib extends TikiLib
     
   }
 
+  // used in meal summary
+  function count_diners( $mealId, $use_multiplier=false ) { // only regular (not recurring) meals at this point
+      if ( $mealId <= 0 ) return 0;
+      
+      if ( $use_multiplier == true ) {
+          $numdiners = 0.00;
+          $query = "SELECT cal_login FROM cohomeals_meal_participant " .
+              "WHERE cal_id = $mealId AND (cal_type = 'M' OR cal_type = 'T')";
+          $allrows = $this->fetchAll($query);
+          foreach( $allrows as $row ) {
+              $multiplier = $this->get_multiplier( $row["cal_login"] );
+              $numdiners += $multiplier;
+          }
+          
+          $query = "SELECT cal_fullname, meal_multiplier FROM cohomeals_meal_guest " .
+              "WHERE cal_meal_id = $mealId AND cal_type = '$participation_type'"; 
+          $allrows = $this->fetchAll($query);
+          foreach( $allrows as $row ) {
+              $numdiners += $row["meal_multiplier"];
+          }
+      }
+      else { // just plain old head count
+          $numdiners = 0;
+          $query = "SELECT cal_login FROM cohomeals_meal_participant " .
+              "WHERE cal_id = $mealId AND (cal_type = 'M' OR cal_type = 'T')";
+          $allrows = $this->fetchAll($query);
+          foreach( $allrows as $row ) {
+              $numdiners++;
+          }
+
+          $query = "SELECT cal_fullname FROM cohomeals_meal_guest " .
+              "WHERE cal_meal_id = $mealId AND cal_type = '$participation_type'"; 
+          $allrows = $this->fetchAll($query);
+          foreach( $allrows as $row ) {
+              $numdiners++;
+          }
+      } 
+
+      return $numdiners;
+  }
+  
+  
   // used in load_food_restrictions_by_meal
   function is_dining( $username, $mealid ) {
   
@@ -268,7 +310,7 @@ class CohoMealsLib extends TikiLib
   }
 
 
-  // used in load buddies
+  // used in load buddies and meal summary
   function getAllMealUsers() { // find the people actively in the meal program
       $myusers = new UsersLib;
       $groupnames = array();
@@ -277,7 +319,16 @@ class CohoMealsLib extends TikiLib
       $groupnames[2] = "Official Friend (active)";
       $groupnames[3] = "Associate Member (active)";
       $mealusers = $myusers->get_users( 0, -1, 'login_asc', '', '', true, $groupnames, '', false, false, false); 
-      return $mealusers;
+
+      $ret = array();
+      foreach ( $mealusers['data'] as $mealuser ) {
+          if ( ($mealuser['user'] != 'admin') && ($mealuser['user'] != 'testassociatemember') && ($mealuser['user'] != 'testfriend') && ($mealuser['user'] != 'testrenter') ) {
+              $realname = $this->get_user_preference($mealuser['user'], 'realName', $mealuser['user']);
+              if ( $realname == "" ) $realname = $mealuser['user'];
+              $ret[] = array( "username"=>$mealuser['user'], "realName"=>$realname );
+          }
+      }
+      return $ret;
   }
 
   // not used yet
@@ -310,29 +361,23 @@ class CohoMealsLib extends TikiLib
   // used in meal details page
   function load_buddies_signees( $theuser, $theuserisadmin, $include_self=false ) {
       $ret = array ();
-      $i = 0;
       $buddies = array();
       
       if ( $theuserisadmin ) {
-          $buddyinfo = $this->getAllMealUsers(); 
-          foreach ( $buddyinfo['data'] as $buddy ) { 
-              $realname = $this->get_user_preference($buddy['user'], 'realName', $buddy['user']);
-              if ( $realname == "" ) $realname = $buddy['user'];
-              $buddies[$i++] = array( "username" => $buddy['user'], "realName" => $realname );
-          }
+          $buddies = $this->getAllMealUsers(); 
       } else {
-          $sql = "SELECT cal_signee FROM webcal_buddy " .
+          $sql = "SELECT cal_signee FROM cohomeals_buddy " .
               "WHERE cal_signer = '$theuser'";
           $allrows = $this->fetchAll($sql);
           foreach ($allrows as $buddy) {
               $realname = $this->get_user_preference($buddy["cal_signee"], 'realName', $buddy["cal_signee"]);
               if ( $realname == "" ) $realname = $buddy["cal_signee"];
-              $buddies[$i++] = array( "username" => $buddy["cal_signee"], "realName" => $realname );
+              $buddies[] = array( "username" => $buddy["cal_signee"], "realName" => $realname );
           }          
           if ( $include_self == true ) {
               $realname = $this->get_user_preference($theuser, 'realName', $theuser);
               if ( $realname == "" ) $realname = $theuser;              
-              $buddies[$i++] = array( "username" => $theuser, "realName" => $realname );
+              $buddies[] = array( "username" => $theuser, "realName" => $realname );
           }
       }
       return $buddies;
@@ -359,11 +404,11 @@ class CohoMealsLib extends TikiLib
           $hostusername = $row["cal_host"];
           $hostrealname = $this->get_user_preference($hostusername, 'realName', $hostusername);
           if ( $hostrealname == "" ) $hostrealname = $hostusername;
-          $guests[] = array( "realName" => $row["cal_fullname"], "hostusername" => $hostusername, "hostrealname"=>$hostrealname, "meal_multiplier"=>$row["meal_multiplier"]);
+          $guests[] = array( "realName" => $row["cal_fullname"], "hostusername" => $hostusername, "hostrealname"=>$hostrealname, "meal_multiplier"=>$row["meal_multiplier"]); 
       }
       return $guests;
   }
-  
+
   
   // used in meal detail page
   function load_food_restrictions_by_meal($mealid=0) {
@@ -409,6 +454,55 @@ class CohoMealsLib extends TikiLib
       
       return $foodrestrictions;
   }
+
+  // used in a few times meal summary 
+  function load_pantry_foods() {
+      $foods = array();
+
+      $sql = "SELECT cal_category, cal_food_id, cal_description, cal_unit, cal_unit_price " . 
+          "FROM cohomeals_pantry_food WHERE cal_available_meals = 1 " .
+          "ORDER BY cal_category, cal_description"; 
+      $allfoods = $this->fetchAll($sql);
+      foreach( $allfoods as $food ) { 
+          $foods[] = array("category"=>$food["cal_category"], "name"=>$food["cal_description"], "id"=>$food["cal_food_id"], "unit"=>$food["cal_unit"], "unitcost"=>$food["cal_unit_price"]);
+      } 
+      return $foods;
+  }
+
+  // used in meal summary
+  function get_pantry_purchases( &$pantry_details, $mealId, $pantry_omit=[] ) {
+      if ( $mealId <= 0 ) {
+          $pantry_details = '';
+          return 0;
+      }
+
+      $omit_ids = array();
+      foreach ( $pantry_omit as $omit ) {
+          $query = "SELECT cal_food_id FROM cohomeals_pantry_food WHERE cal_description = '$omit'";
+          $allomit = $this->fetchAll( $query );
+          foreach( $allomit as $oneomit ) {
+              $omit_ids[] = $oneomit["cal_food_id"];
+          }
+      }
+      
+      $pricesum = 0;
+      $pantry_details = array();
+      $query = "SELECT cal_total_price, cal_number_units, cal_food_id FROM cohomeals_pantry_purchases " .
+          "WHERE cal_meal_id = $mealId AND cal_food_id NOT IN ('" . implode( "', '", $omit_ids ) . "')";
+      $allrows = $this->fetchAll( $query );
+      foreach( $allrows as $row ) {
+          $pricesum += $row["cal_total_price"];
+
+          $query2 = "SELECT cal_unit, cal_description FROM cohomeals_pantry_food " .
+              "WHERE cal_food_id = " . $row["cal_food_id"];
+          $food = $this->getOne( $query2 );
+          if( $food ) {
+              $pantry_details[] = array( "food"=>$food["cal_description"], "cost"=>$row["cal_total_price"]/100.00, "numunits"=>$row["cal_number_units"], "units"=>$food["cal_unit"] );
+          }
+      }
+      return $pricesum;
+  }
+
   
 
   // output unix timestamp
@@ -447,7 +541,7 @@ class CohoMealsLib extends TikiLib
   }
 
 
-  // used in meal view entry
+  // used in meal view entry and edit_meal_summary
   function load_meal_info($mealtype, $mealid, &$mealinfo)
   {
       if ($mealtype == 'recurring') {
@@ -468,25 +562,220 @@ class CohoMealsLib extends TikiLib
 
       } else {
       
-          $query = "SELECT cal_walkins, cal_signup_deadline, " .
+          $query = "SELECT cal_walkins, cal_signup_deadline, cal_date, cal_time, " .
               "cal_base_price, cal_max_diners, cal_menu, cal_notes, cal_cancelled, meal_title";
           $query .= " FROM cohomeals_meal WHERE cal_id = " . $mealid;
           $res = $this->query($query);
           if ( $info = $res->fetchRow() ) {
-              $mealinfo["title"] = $info["meal_title"];
+              if ( $info["meal_title"] == "" ) $mealinfo["title"] = "Community meal";
+              else $mealinfo["title"] = $info["meal_title"];
               $mealinfo["menu"] = $info["cal_menu"];
               $mealinfo["signup_deadline"] = $info["cal_signup_deadline"];
-              $mealinfo["base_price"] = $info["cal_base_price"];
+              $mealinfo["base_price"] = $info["cal_base_price"]; 
               $mealinfo["walkins"] = $info["cal_walkins"];
               $mealinfo["notes"] = $info["cal_notes"];
               $mealinfo["max_diners"] = $info["cal_max_diners"];
               $mealinfo["cancelled"] = $info["cal_cancelled"];
+              $mealinfo["mealdatetime"] = $this->coho_datetime_to_unix( $info["cal_date"], $info["cal_time"] );
           } else return false;
       }
       return true;
   }
 
 
+  // used in meal summary
+  function get_food_cost_for_meal( $mealId, $food_description ) {
+      if ( $mealId <= 0 ) return 0;
+      if ( !isset( $food_description ) ) return 0;
+      
+      $costsum = 0;
+
+      $sql = "SELECT cal_food_id FROM cohomeals_pantry_food WHERE cal_description = '$food_description'";
+      $allfood = $this->fetchAll( $sql );
+      foreach( $allfood as $food ) {
+          $foodId = $food["cal_food_id"];
+          $sql2 = "SELECT cal_total_price FROM cohomeals_pantry_purchases " .
+              "WHERE cal_meal_id = $mealId AND cal_food_id = $foodId";
+          $allcost = $this->fetchAll( $sql2 );
+          foreach( $allcost as $cost ) {
+              $costsum += $cost["cal_total_price"];
+          }
+      }
+      return $costsum;
+  }
+
+  // used in meal summary
+  function get_multiplier( $diner ) {
+      $multiplier = $this->get_user_preference( $diner, 'meal_multiplier', 1.0 );
+      if ( (!is_numeric($multiplier)) || ($multiplier<0) || ($multiplier>99) ) $multiplier = 1.0;
+      return $multiplier;
+  }
+
+  // used (or should be) all over the place
+  function get_fullname( $username ) {
+      $realname = '';
+      $realname = $this->get_user_preference($username, 'realName', $username);
+      if ($realname == '' ) $realname = $username;
+      return $realname;
+  }
+  
+  // used in meal summary
+  function person_cost( $mealId, $diner ) { // only non-recurring for now
+      $mealinfo = array();
+      $this->load_meal_info( "regular", $mealId, $mealinfo ); 
+      $cost = $mealinfo["base_price"] * $this->get_multiplier( $diner );
+      $cost /= 100.00;
+      return $cost;
+  }
+
+  // used in meal summary
+  function diner_income( $mealId, $paperwork_done=true ) { // only non-recurring meals
+      $income = 0;
+
+      $query = "SELECT cal_base_price FROM cohomeals_meal WHERE cal_id = $mealId";
+      $base_price = $this->getOne( $query );
+      
+      if ( $paperwork_done == false ) { // calculate from participant tables
+          // meal plan participants
+          $query = "SELECT cal_login FROM cohomeals_meal_participant " .
+              "WHERE cal_id = $mealId AND (cal_type = 'M' OR cal_type = 'T')";
+          $allrows = $this->fetchAll($query);
+          foreach( $allrows as $diner ) {
+              $income += ( $this->get_multiplier( $diner["cal_login"] ) * $base_price ) / 100.00;
+          }
+          
+          // guests
+          $query = "SELECT meal_multiplier FROM cohomeals_meal_guest " .
+              "WHERE cal_meal_id = $mealId AND cal_type = 'M'";
+          $allrows = $this->fetchAll($query);
+          foreach( $allrows as $row ) { 
+              $income += ( $row["meal_multiplier"] * $base_price ) / 100.00;
+          }
+      } else { // paperwork is done, so get info from financial log
+
+          $query = "SELECT cal_amount FROM cohomeals_financial_log WHERE cal_meal_id = $mealId";
+          $allrows = $this->fetchAll($query);
+          foreach( $allrows as $amt ) {
+              $income += $amt["cal_amount"] / 100;
+          }
+          $income *= -1;
+      }
+      $income = $income; // since they were all charges
+      return $income;
+  }
+
+  
+  // used in meal summary
+  function paperwork_done( $mealId ) {
+      $isdone = false;
+      $sql = "SELECT paperwork_done FROM cohomeals_meal WHERE cal_id=$mealId";
+      if ($this->getOne($sql) != 0 ) $isdone = true;
+      return $isdone;
+  }
+
+  // used in charge_for_meal and view entry
+  function is_charged( $mealId ) {
+      $charged = false;
+      $query = "SELECT diners_charged FROM cohomeals_meal WHERE cal_id = $mealId";
+      $charged = $this->getOne( $query ); 
+      $query = "SELECT cal_amount FROM cohomeals_food_expenditures WHERE cal_meal_id = $mealId";
+      if ( $this->getOne( $query ) ) $charged = true;
+      return $charged;
+  }
+  
+  // used in meal summary and cron
+  function charge_for_meal( $mealId, $chargeoverride=false ) { // non-recurring only. should have been changed to non-recurring before this
+
+      // check to see if already charged
+      $charged = $this->is_charged( $mealId );
+      if ($chargeoverride == true ) $charged = false; 
+      if ( $charged != false ) {
+          return false;
+      }
+
+      // do the charging. meal plan participants and guests
+      $query = "SELECT cal_base_price FROM cohomeals_meal WHERE cal_id = $mealId";
+      $base_price = $this->getOne( $query );
+
+      // meal plan participants
+      $query = "SELECT cal_login FROM cohomeals_meal_participant " .
+          "WHERE cal_id = $mealId AND (cal_type = 'M' OR cal_type = 'T')";
+      $allrows = $this->fetchAll($query);
+      foreach( $allrows as $diner ) { 
+          $multiplier = $this->get_multiplier( $diner["cal_login"] );
+          $amount = -1*$multiplier * $base_price;
+          $realname = $this->get_user_preference($diner["cal_login"], 'realName', $diner["cal_login"]);
+          if ($realname == '' ) $realname = $diner["cal_login"];
+          $description = $realname . " dining. (multiplier = " . $multiplier . ")"; 
+          $this->charge_person( $diner["cal_login"], $amount, $description, $mealId );
+      }
+
+      // guests
+      $query = "SELECT meal_multiplier, cal_host, cal_fullname FROM cohomeals_meal_guest " .
+          "WHERE cal_meal_id = $mealId AND (cal_type = 'M' OR cal_type = 'T')";
+      $allrows = $this->fetchAll($query);
+      foreach( $allrows as $guest ) {
+          $amount = -1*$guest["meal_multiplier"] * $base_price;
+          $description = "Guest " . $guest["cal_fullname"] . " dining (multiplier = " . $guest["meal_multiplier"] . ")";echo $description . "<br>";
+          $this->charge_person( $guest["cal_host"], $amount, $description, $mealId );
+      }
+
+      // set charged flag
+      $query = "UPDATE cohomeals_meal SET diners_charged=1 WHERE cal_id = $mealId";
+      if (!$this->query($query) ) {
+          echo "Error charging meal.";
+          die;
+      }
+  }
+
+
+  // used in charge for meal
+  function charge_person( $userId, $amount, $description, $mealId ) {
+      $billingGroup = false;
+      $billingGroup = $this->get_billingId( $userId ); 
+      if ( ($billingGroup == false) || (!is_numeric($billingGroup)) || ($billingGroup <=0) ) {
+          $billingGroup = $this->make_new_billingGroup( $userId );
+      }
+
+      $balance = 0;
+      $last_balance = 0;
+      $last_time = 0;
+
+      $sql = "SELECT cal_amount, cal_running_balance, cal_timestamp " .
+          "FROM cohomeals_financial_log " . 
+          "WHERE cal_billing_group = '$billingGroup' ".
+          "ORDER BY cal_log_id";
+      $allrows = $this->fetchAll( $sql );
+      foreach( $allrows as $row ) {
+          $balance += $row['cal_amount'];
+          $last_balance = $row['cal_running_balance'];
+          $last_time = $row['cal_timestamp'];
+      }
+
+      if ( $last_balance != $balance ) {
+          $errormsg = "mismatched balance for billing group $billingGroup: " . 
+              "at time $last_time, balance = $last_balance; " .
+              "balance sum = $balance<br>";
+          echo $errormsg;
+          die;
+      }
+
+      $sql = "SELECT MAX(cal_log_id) FROM cohomeals_financial_log";
+      $maxid = $this->getOne( $sql );
+      $id = $maxid + 1;
+      $sql = "INSERT INTO cohomeals_financial_log " .
+          "( cal_log_id, cal_login, cal_billing_group, cal_description, " .
+          "cal_meal_id, cal_amount, cal_running_balance ) " . 
+          "VALUES ( $id, '$userId', $billingGroup, '$description', $mealId, $amount, ";
+      $balance += $amount;
+      $sql .= $balance . ")"; 
+      $this->query( $sql );
+
+      return true;
+  }
+  
+
+  // used somewhere
   function coho_datetime_to_unix($YYYYMMDD, $HHMM)
   {
     $length = strlen($HHMM); 
@@ -539,6 +828,7 @@ class CohoMealsLib extends TikiLib
     return $ret;
   }
 
+  // i think this can  be eliminated
   // used in coho_meals-view_entry.php (walkin fees have been eliminated)
   function get_adjusted_price($base_price, $fee_class)
   {
@@ -565,7 +855,7 @@ class CohoMealsLib extends TikiLib
     return $cost;
   }
   
-  
+  // i think this can be eliminated  
   function is_walkin($mealid, $user_in_question) 
   {
     $ret = false;
@@ -605,9 +895,47 @@ class CohoMealsLib extends TikiLib
       else return false;
   }
 
-  
-}
+  // used in charge meals
+  function make_new_billingGroup( $userId ) {
 
+      // make sure they don't already have a billing group
+      $query = "SELECT value FROM tiki_user_preferences WHERE prefName = 'billingGroup' AND user = '$userId'";
+      $bgid = $this->getOne( $query );
+      if ( (is_numeric($bgid)) && ($bgid>0) ) { // already has a billing group
+          return $bgid;
+      }
+
+      // check to see if they have a name instead of a number
+      $hadname = false;
+      $query = "SELECT cal_billing_group FROM cohomeals_financial_log WHERE cal_login = '$userId'";
+      $bganswer = $this->getOne( $query );
+      if ( is_numeric($bganswer) ) {
+          // insert preference, and
+          $this->query("INSERT INTO tiki_user_preferences (user, prefName, value) VALUES ('$userId', 'billingGroup', $bganswer)");
+          return $bganswer;
+      } elseif ( !$bgname ) {
+          $bgname = $userId . "12345"; // make one up
+      } else {
+          $hadname = true;
+      }
+                                                          
+      // ok now we have a name, let's get a number
+      $newid = $this->getOne( "SELECT MAX(billingGroupId) FROM cohomeals_billing_groups" );
+      
+      // insert name into billing group table,
+      $this->query("INSERT INTO cohomeals_billing_groups (billingGroupId, billingGroupName) VALUES ($newid, '$bgname')");
+      
+      // insert preference, and
+      $this->query("INSERT INTO tiki_user_preferences (user, prefName, value) VALUES ('$userId', 'billingGroup', $newid)");
+
+      // change in financial log
+      if ( $hadname ) {
+          $this->query("UPDATE cohomeals_financial_log SET cal_billing_group=$newid WHERE cal_billing_group='$bgname'");
+      }
+      return $newid;
+  }
+
+}
 //$cohomealslib = new CohoMealsLib;
 
 
