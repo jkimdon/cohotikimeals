@@ -23,7 +23,7 @@ else $todo = 'edit';
 $mealId = $_REQUEST["id"]; 
 $smarty->assign( 'mealId', $mealId );
 if ( !($mealId > 0) ) {
-    $smarty->assign('errortype', 'Empty meal id.');
+    $smarty->assign('msg', 'Empty meal id.');
     $smarty->display("error.tpl");
     die;
 }
@@ -53,7 +53,7 @@ if ( $todo == 'confirm' ) {
                 $nexturl .= "&multiplier[]=" . $mult;
                 $thishost = $host[$i];
                 if ( !is_string( $thishost ) ) {
-                    $smarty->assign('errortype', 'Error saving host.');
+                    $smarty->assign('msg', 'Error saving host.');
                     $smarty->display("error.tpl");
                     die;
                 }
@@ -98,7 +98,7 @@ if ( $todo == 'confirm' ) {
     header("Location: $nexturl");
     die;
 } elseif ( $todo != 'edit' ) {
-    $smarty->assign('errortype', 'Error editing meal summary.');
+    $smarty->assign('msg', 'Error editing meal summary.');
     $smarty->display("error.tpl");
     die;
 }
@@ -108,7 +108,7 @@ if ( $todo == 'confirm' ) {
 if ( $mealtype == "recurring" ) {
     $newMealId = $cohomeals->create_override_from_recurrence( $mealId, $mealdatetime );
     if (!$newMealId) {
-        $smarty->assign('errortype', 'Error creating meal.');
+        $smarty->assign('msg', 'Error creating meal.');
         $smarty->display("error.tpl");
         die;
     }

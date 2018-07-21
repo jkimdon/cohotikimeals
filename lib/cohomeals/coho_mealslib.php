@@ -257,7 +257,7 @@ class CohoMealsLib extends TikiLib
       if ( $mealId <= 0 ) return 0;
       
       if ( $use_multiplier == true ) {
-          $numdiners = 0.00;
+          $numdiners = 0;
           $query = "SELECT cal_login FROM cohomeals_meal_participant " .
               "WHERE cal_id = $mealId AND (cal_type = 'M' OR cal_type = 'T')";
           $allrows = $this->fetchAll($query);
@@ -267,7 +267,7 @@ class CohoMealsLib extends TikiLib
           }
           
           $query = "SELECT cal_fullname, meal_multiplier FROM cohomeals_meal_guest " .
-              "WHERE cal_meal_id = $mealId AND cal_type = '$participation_type'"; 
+              "WHERE cal_meal_id = $mealId AND (cal_type = 'M' OR 'T')";
           $allrows = $this->fetchAll($query);
           foreach( $allrows as $row ) {
               $numdiners += $row["meal_multiplier"];
@@ -283,7 +283,7 @@ class CohoMealsLib extends TikiLib
           }
 
           $query = "SELECT cal_fullname FROM cohomeals_meal_guest " .
-              "WHERE cal_meal_id = $mealId AND cal_type = '$participation_type'"; 
+              "WHERE cal_meal_id = $mealId AND (cal_type = 'M' OR cal_type = 'T')";
           $allrows = $this->fetchAll($query);
           foreach( $allrows as $row ) {
               $numdiners++;
@@ -504,7 +504,7 @@ class CohoMealsLib extends TikiLib
   }
 
   
-
+  // is this used?
   // output unix timestamp
   function get_day( $ref_date_YYYYMMDD, $num_days ) 
   {
@@ -678,8 +678,6 @@ class CohoMealsLib extends TikiLib
       $charged = false;
       $query = "SELECT diners_charged FROM cohomeals_meal WHERE cal_id = $mealId";
       $charged = $this->getOne( $query ); 
-      $query = "SELECT cal_amount FROM cohomeals_food_expenditures WHERE cal_meal_id = $mealId";
-      if ( $this->getOne( $query ) ) $charged = true;
       return $charged;
   }
   
@@ -716,7 +714,7 @@ class CohoMealsLib extends TikiLib
       $allrows = $this->fetchAll($query);
       foreach( $allrows as $guest ) {
           $amount = -1*$guest["meal_multiplier"] * $base_price;
-          $description = "Guest " . $guest["cal_fullname"] . " dining (multiplier = " . $guest["meal_multiplier"] . ")";echo $description . "<br>";
+          $description = "Guest " . $guest["cal_fullname"] . " dining (multiplier = " . $guest["meal_multiplier"] . ")";
           $this->charge_person( $guest["cal_host"], $amount, $description, $mealId );
       }
 
@@ -725,7 +723,7 @@ class CohoMealsLib extends TikiLib
       if (!$this->query($query) ) {
           echo "Error charging meal.";
           die;
-      }
+          }
   }
 
 
@@ -773,9 +771,108 @@ class CohoMealsLib extends TikiLib
 
       return true;
   }
-  
 
-  // used somewhere
+
+  // used by meal admin only at this point
+  // find and replace all diner charges for meal (but don't remove the peoples' names from the signup)
+  // regular meals only since to have been charged, they should have been transformed into regular
+  function refund_meal( $mealId, $msg='' ) {
+      if ( !$this->is_meal_admin ) {
+          return false;
+      }
+      if ($msg == '') {
+          $mealinfo = array();
+          $this->load_meal_info( "regular", $mealId, $mealinfo );
+          $mealdatetime = $mealinfo["mealdatetime"];
+          $msg = "Refund for " . $mealinfo["title"] . " meal on " . $this->date_format( "%A, %b %e, %Y", $mealdatetime) . " at " . $this->date_format( "%I:%M %p", $mealdatetime);
+      }
+
+      // find all the financial entries for this meal, add up for each billing group and issue a refund
+      $query = "SELECT cal_login, cal_billing_group, cal_amount " .
+          "FROM cohomeals_financial_log WHERE cal_meal_id = $mealId ORDER BY cal_billing_group";
+      $allrows = $this->fetchAll( $query );
+      $prev_bg = 0; // there is no 0 billing group
+      $cur_bg = 0;
+      $prev_user = '';
+      $cum_amnt = 0;
+      foreach( $allrows as $row ) { 
+          $cur_bg = $row["cal_billing_group"];
+          if ( $cur_bg != $prev_bg ) {
+              if ( $prev_user != '' ) {
+                  $cum_amt *= -1; // change from charge to credit
+                  // finish the refund for the previous billing group
+                  $this->charge_person( $prev_user, $cum_amt, $msg, $mealId );
+                  $cum_amt = 0;
+              }
+              $prev_bg = $cur_bg;
+              $prev_user = $row["cal_login"];
+          }
+          $cum_amt += $row["cal_amount"]; 
+      }
+      // now do the last one
+      if ( $cur_bg != 0 ) { // make sure there was at least one
+          // finish the refund for the previous billing group
+          $cum_amt *= -1;
+          $this->charge_person( $prev_user, $cum_amt, $msg, $mealId );
+      }
+
+      // reset the charged flag
+      $query = "UPDATE cohomeals_meal SET diners_charged=NULL WHERE cal_id = $mealId";
+      if ( !$this->query( $query ) ) {
+          $smarty->assign('msg', 'Error refunding meal.');
+          $smarty->display("error.tpl");
+          die;
+      }
+      return $mealdatetime;
+  }
+
+
+  // used as option in refund_meal
+  // doesn't remove any walkins nor refund any diners
+  function delete_entered_expenses( $mealId ) {
+      if ( !$this->is_meal_admin ) {
+          return false;
+      }
+      // shoppers
+      $query = "DELETE FROM cohomeals_food_expenditures WHERE cal_meal_id = $mealId";
+      if ( !$this->query( $query ) ) {
+          $smarty->assign('msg', 'Error removing shoppers.');
+          $smarty->display("error.tpl");
+          die;
+      }
+
+      // pantry, including farmers market and flat rate
+      $query = "DELETE FROM cohomeals_pantry_purchases WHERE cal_meal_id = $mealId";
+      if (!$this->query( $query ) ) {
+          $smarty->assign('msg', 'Error removing pantry items.');
+          $smarty->display("error.tpl");
+          die;
+      }
+
+      // reset paperwork flag
+      $query = "UPDATE cohomeals_meal SET paperwork_done = NULL WHERE cal_id = $mealId";
+      if (!$this->query( $query ) ) {
+          $smarty->assign('msg', 'Error setting paperwork flag.');
+          $smarty->display("error.tpl");
+          die;
+      }
+  }
+
+
+  
+  // used in charge_meal
+  // regular meals only  
+  function get_mealdatetime( $mealId ) { 
+      if ( !is_numeric( $mealId ) || $mealId <= 0 ) {
+          return false;
+      }
+      $mealinfo = array();
+      $this->load_meal_info( "regular", $mealId, $mealinfo );
+      return $this->coho_datetime_to_unix( $mealinfo["cal_date"], $mealinfo["cal_time"] );
+  }
+
+  
+  // used several places
   function coho_datetime_to_unix($YYYYMMDD, $HHMM)
   {
     $length = strlen($HHMM); 
@@ -790,7 +887,8 @@ class CohoMealsLib extends TikiLib
     $MM = substr($YYYYMMDD, 4, 2);
     $DD = substr($YYYYMMDD, 6, 2);
 
-    $unixtime = TikiLib::make_time($HH,$MinMin,$SS,$MM,$DD,$YYYY);
+    $unixtime = TikiLib::make_time($HH,$MinMin,0,$MM,$DD,$YYYY);
+
     return $unixtime;
   }
 

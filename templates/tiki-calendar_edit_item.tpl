@@ -102,7 +102,9 @@
 {/if}
 	</td>
 </tr>
-
+{if $calitem.calendarId eq 1} {* meal program *}
+        {include file='coho_meals-edit_item.tpl'}
+{else}
 <tr>
 <td>{tr}Title (or guest name if guest room reservation){/tr}</td>
 <td>
@@ -555,7 +557,7 @@ or enter name and phone or email:
 </tr>
 
 
-
+{/if} {* end alternate to meal program *}
 
 
 </table>

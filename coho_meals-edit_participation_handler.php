@@ -16,7 +16,7 @@ $myurl = 'coho_meals-edit_participation_handler.php';
 
 $mealtype = $_REQUEST["mealtype"];
 if ( ($mealtype != "regular") && ($mealtype != "recurring") ) {
-    $smarty->assign('errortype', 'Invalid meal type.');
+    $smarty->assign('msg', 'Invalid meal type.');
     $smarty->display("error.tpl");
     die;
 }
@@ -50,7 +50,7 @@ $job = $_REQUEST["job"];
 if ( $mealtype == "recurring" ) {
     $newMealId = $cohomeals->create_override_from_recurrence( $mealId, $mealdatetime );
     if (!$newMealId) {
-        $smarty->assign('errortype', 'Error creating meal.');
+        $smarty->assign('msg', 'Error creating meal.');
         $smarty->display("error.tpl");
         die;
     }
@@ -84,7 +84,7 @@ if ( $mealtype == "regular" ) {
                         "SET cal_login = '$none' " .
                         "WHERE cal_id = $mealId AND cal_type = 'C' AND cal_login = '$person' AND cal_notes = '$job'"; 
                     if ( !$cohomeals->query($sql) ) {
-                        $smarty->assign('errortype', 'Error adding person.');
+                        $smarty->assign('msg', 'Error adding person.');
                         $smarty->display("error.tpl");
                         die;
                     }
@@ -95,7 +95,7 @@ if ( $mealtype == "regular" ) {
                     $sql = "INSERT INTO cohomeals_meal_participant (cal_id, cal_login, cal_type) " .
                         "VALUES (" . $mealId . ", '" . $person . "', '" . $participation_type . "')";
                     if ( !$cohomeals->query($sql) ) {
-                        $smarty->assign('errortype', 'Error adding person.');
+                        $smarty->assign('msg', 'Error adding person.');
                         $smarty->display("error.tpl");
                         die;
                     }
@@ -104,7 +104,7 @@ if ( $mealtype == "regular" ) {
                     $sql = "UPDATE cohomeals_meal_participant SET cal_login = '$person' " .
                         "WHERE cal_id = $mealId AND cal_type = 'C' AND cal_notes = '$job' AND cal_login = '$olduser'";
                     if ( !$cohomeals->query($sql) ) {
-                        $smarty->assign('errortype', 'Error updating participation.');
+                        $smarty->assign('msg', 'Error updating participation.');
                         $smarty->display("error.tpl");
                         die;
                     }

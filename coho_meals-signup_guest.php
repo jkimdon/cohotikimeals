@@ -16,7 +16,7 @@ $myurl = 'coho_meals-signup_guest.php';
 
 $mealtype = $_REQUEST["mealtype"];
 if ( ($mealtype != "regular") && ($mealtype != "recurring") ) {
-    $smarty->assign('errortype', 'Invalid meal type.');
+    $smarty->assign('msg', 'Invalid meal type.');
     $smarty->display("error.tpl");
     die;
 }
@@ -26,7 +26,7 @@ $cohomeals->set_user( $user );
 $cohomeals->set_meal_admin( $is_meal_admin );
 
 if (!isset($_REQUEST["id"]) || !isset($_REQUEST["mealdatetime"]) || !isset($_REQUEST["action"]) || !isset($_REQUEST["type"]) || !isset($_REQUEST["guestName"]) || !isset($_REQUEST["host"]) ) {
-    $smarty->assign('errortype', 'Inappropriate variables.');
+    $smarty->assign('msg', 'Inappropriate variables.');
     $smarty->display("error.tpl");
     die;
 }
@@ -48,7 +48,7 @@ else $meal_multiplier = 1;
 if ( $mealtype == "recurring" ) {
     $newMealId = $cohomeals->create_override_from_recurrence( $mealId, $mealdatetime );
     if (!$newMealId) {
-        $smarty->assign('errortype', 'Error creating meal.');
+        $smarty->assign('msg', 'Error creating meal.');
         $smarty->display("error.tpl");
         die;
         }
@@ -65,7 +65,7 @@ if ( $mealtype == "regular" ) {
             $sql = "INSERT INTO cohomeals_meal_guest (cal_meal_id, cal_fullname, cal_host, meal_multiplier, cal_type) " .
                 "VALUES ($mealId, '$guestname', '$host', $meal_multiplier, 'M')";
             if ( !$cohomeals->query($sql) ) {
-                $smarty->assign('errortype', 'Error adding guest.');
+                $smarty->assign('msg', 'Error adding guest.');
                 $smarty->display("error.tpl");
                 die;
             }
@@ -73,7 +73,7 @@ if ( $mealtype == "regular" ) {
     } elseif ($action == 'D') {
         $sql = "DELETE FROM cohomeals_meal_guest WHERE cal_meal_id=$mealId AND cal_fullname='$guestname' AND cal_host='$host' AND cal_type ='M'";
         if ( !$cohomeals->query($sql) ) {
-            $smarty->assign('errortype', 'Error removing guest.');
+            $smarty->assign('msg', 'Error removing guest.');
             $smarty->display("error.tpl");
             die;
         }

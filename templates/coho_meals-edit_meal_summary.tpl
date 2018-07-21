@@ -38,9 +38,9 @@
     {$i=$i+1}
 {/foreach}
 {for $j=0 to 2}
-    <tr><td><input type="text" size="30" maxlength="70" name="newguest[{$i}]" value=""/></td>
+    <tr><td><input type="text" size="30" maxlength="70" name="newguest[]" value=""/></td>
         <td><input type="number" step="0.01" name="multiplier[{$i}]" value="1.0"/></td>
-	<td><select name="host[{$i}]">
+	<td><select name="host[]">
 	       <option value="none" selected="selected">Select host</option>
 	       {foreach item=hostoption from=$mealpeople}
 	           <option value="{$hostoption.username}">{$hostoption.realName}</option>

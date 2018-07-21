@@ -36,14 +36,14 @@ if ( isset($_REQUEST["id"] )) {
     $mealId = $_REQUEST["recurrenceId"];
     $mealtype = "recurring";
 } else {
-    $smarty->assign('errortype', 'Invalid entry id.');
+    $smarty->assign('msg', 'Invalid entry id.');
     $smarty->display("error.tpl");
     die;
 }
 $smarty->assign('mealtype', $mealtype);
 
 if ( empty ( $mealId ) || $mealId <= 0 || ! is_numeric ( $mealId ) ) {
-  $smarty->assign('errortype', 'Invalid entry id.');
+  $smarty->assign('msg', 'Invalid entry id.');
   $smarty->display("error.tpl");
   die;
 } 
@@ -52,7 +52,7 @@ $smarty->assign('mealId', $mealId);
 
 if ( isset($_REQUEST["mealdatetime"]) ) $mealdatetime = $_REQUEST["mealdatetime"];
 else {
-  $smarty->assign('errortype', 'Invalid meal date.');
+  $smarty->assign('msg', 'Invalid meal date.');
   $smarty->display("error.tpl");
   die;
 }
@@ -67,7 +67,7 @@ $smarty->assign('loggedinuser', $user);
 /// load meal info
 $meal = array();
 if ( !$cohomeals->load_meal_info($mealtype, $mealId, $meal) ) {
-    $smarty->assign('errortype', 'Could not find meal.');
+    $smarty->assign('msg', 'Could not find meal.');
     $smarty->display("error.tpl");
     die;
 }

@@ -21,7 +21,7 @@ $confirmOrDisplay = $_REQUEST["confirmOrDisplay"];
 $mealId = $_REQUEST["id"]; 
 $smarty->assign( 'mealId', $mealId );
 if ( !($mealId > 0) ) {
-    $smarty->assign('errortype', 'Empty meal id.');
+    $smarty->assign('msg', 'Empty meal id.');
     $smarty->display("error.tpl");
     die;
 }
@@ -39,13 +39,13 @@ if ( !$paperwork_done ) { // getting values from the form not the database
     $presignup_income = $cohomeals->diner_income( $mealId, false ); 
     $smarty->assign( 'presignup_income', $presignup_income );
 
-    $walkin_income = 0.00;
+    $walkin_income = 0;
     $numwalkins = 0;
-    $weighted_diners = 0.00;
+    $weighted_diners = 0;
     $weighted_diners += $cohomeals->count_diners( $mealId, true );
     $preweighted = $weighted_diners; // used later too
     $smarty->assign( 'preweighted', $preweighted );
-    
+
     // walkin meal plan participants
     if ( isset( $_REQUEST["walkin"] ) ) $walkins = $_REQUEST["walkin"];
     else $walkins = array('');
@@ -57,18 +57,20 @@ if ( !$paperwork_done ) { // getting values from the form not the database
         }
     } 
     // walkin guests
-    if (isset( $_REQUEST["newguest"] ) ) $newguests = $_REQUEST["newguests"];
+    if (isset( $_REQUEST["newguest"] ) ) $newguests = $_REQUEST["newguest"];
     else $newguests = [];
-    if (isset( $_REQUEST["multiplier"] ) ) $newguests = $_REQUEST["multipliers"];
+    if (isset( $_REQUEST["multiplier"] ) ) $multipliers = $_REQUEST["multiplier"];
     else $multipliers = [];
     $i=0;
     foreach ( $newguests as $newguest ) {
-        $walkin_income += ( ( $multiplier[$i] * $mealinfo["base_price"] ) / 100 );
-        $numwalkins++;
-        $weighted_diners += $multiplier[$i];
+        if ( $newguest != '' ) {
+            $walkin_income += ( ( $multipliers[$i] * $mealinfo["base_price"] ) / 100 );
+            $numwalkins++;
+            $weighted_diners += $multipliers[$i];
+        }
         $i++;
-    }
-    $smarty->assign( 'walkinweighted', $weighted_diners - $preweighted );
+    } 
+    $smarty->assign( 'walkinweighted', ($weighted_diners - $preweighted) );
     $smarty->assign( 'walkin_income', $walkin_income );
     $smarty->assign( 'numwalkins', $numwalkins );
 

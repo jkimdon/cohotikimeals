@@ -42,7 +42,7 @@ $smarty->assign( 'is_meal_admin', $is_meal_admin );
 // find the billing group
 $billingId = $cohomeals->get_billingId( $user );
 if (!$billingId) {
-    $smarty->assign('errortype', 'Bad billing group ID.');
+    $smarty->assign('msg', 'Bad billing group ID.');
     $smarty->display("error.tpl");
     die;
 }

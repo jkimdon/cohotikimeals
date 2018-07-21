@@ -44,7 +44,7 @@ if ( $cohomeals->getOne( $query ) ) $done = true;
 
 
 if ( $done ) {
-    $smarty->assign('errortype', 'Paperwork already done or entries already in food_expenditures or pantry_purchases.');
+    $smarty->assign('msg', 'Paperwork already done or entries already in food_expenditures or pantry_purchases.');
     $smarty->display("error.tpl");
     die;
 }
@@ -68,7 +68,7 @@ if ( isset($_REQUEST["walkin"] ) ) {
         $query = "INSERT INTO cohomeals_meal_participant (cal_id, cal_login, cal_type) VALUES (" .
             $mealId . ", '$wi', 'M')"; 
         if (!$cohomeals->query($query) ) {
-            $smarty->assign('errortype', 'Error entering guests.');
+            $smarty->assign('msg', 'Error entering walkins.');
             $smarty->display("error.tpl");
             die;
         }
@@ -85,13 +85,13 @@ if ( isset($_REQUEST["newguest"] ) ) {
         $mult = $multiplier[$i];
         if ( !is_numeric( $mult ) ) $mult = 1;
         $amount = -1*$mult*$base_price;
-        $description = $ng . " dining (guest of " . $hostname . "), (meal multiplier " . $mult . ")";
+        $description = $ng . " dining (guest of " . $hostname . "), (multiplier " . $mult . ")";
         $cohomeals->charge_person( $host[$i], $amount, $description, $mealId );
-
+          
         $query = "INSERT INTO cohomeals_meal_guest (cal_meal_id, cal_fullname, cal_host, meal_multiplier, cal_type ) " .
-            "VALUES ( $mealId, '$ng', '$hostname', $mult, 'M' )";
+            "VALUES ( $mealId, '$ng', '" . $host[$i] . "', $mult, 'M' )";
         if (!$cohomeals->query($query) ) {
-            $smarty->assign('errortype', 'Error entering guests.');
+            $smarty->assign('msg', 'Error entering guests.');
             $smarty->display("error.tpl");
             die;
         }
@@ -116,7 +116,7 @@ if ( isset($_REQUEST["shopper"] ) ) {
             "( cal_log_id, cal_purchaser, cal_amount, cal_meal_id, cal_source ) " .
             "VALUES ( $newid, '$shoppername', $amount, $mealId, '$vendorname' )";
         if (!$cohomeals->query($query) ) {
-            $smarty->assign('errortype', 'Error entering shoppers.');
+            $smarty->assign('msg', 'Error entering shoppers.');
             $smarty->display("error.tpl");
             die;
         }
@@ -141,7 +141,7 @@ if ( isset( $_REQUEST["farmersDollars"] ) ) {
         "( cal_log_id, cal_food_id, cal_number_units, cal_total_price, cal_type, cal_meal_id ) " .
         "VALUES ( $newid, $foodid, $amount, $amount, 1, $mealId )";
     if (!$cohomeals->query($query) ) {
-        $smarty->assign('errortype', 'Error entering farmers market.');
+        $smarty->assign('msg', 'Error entering farmers market.');
         $smarty->display("error.tpl");
         die;
     }
@@ -158,7 +158,7 @@ $query = "INSERT INTO cohomeals_pantry_purchases " .
             "( cal_log_id, cal_food_id, cal_number_units, cal_total_price, cal_type, cal_meal_id ) " .
             "VALUES ( $newid, $foodid, $flatrate, $flatrate, 1, $mealId )";
 if (!$cohomeals->query($query) ) {
-    $smarty->assign('errortype', 'Error entering flat rate.');
+    $smarty->assign('msg', 'Error entering flat rate.');
     $smarty->display("error.tpl");
     die;
 }
@@ -176,7 +176,7 @@ foreach( $allfoods as $food ) {
             "( cal_log_id, cal_food_id, cal_number_units, cal_total_price, cal_type, cal_meal_id ) " .
             "VALUES ( $newid, $foodid, $amt, $foodcost, 1, $mealId )";
         if (!$cohomeals->query($query) ) {
-            $smarty->assign('errortype', 'Error entering pantry purchases.');
+            $smarty->assign('msg', 'Error entering pantry purchases.');
             $smarty->display("error.tpl");
             die;
         }
@@ -188,7 +188,7 @@ foreach( $allfoods as $food ) {
 // set the flag that says we already did the paperwork
 $query = "UPDATE cohomeals_meal SET paperwork_done=1 WHERE cal_id=$mealId";
 if (!$cohomeals->query($query) ) {
-    $smarty->assign('errortype', 'Error with paperwork.');
+    $smarty->assign('msg', 'Error with paperwork.');
     $smarty->display("error.tpl");
     die;
 }
