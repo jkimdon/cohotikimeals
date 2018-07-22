@@ -266,15 +266,16 @@ $smarty->assign('absent', $absent);
 
 
 
-$mail = new TikiMail();
-$mail_data = $smarty->fetch("mail/weekly_calendar_subject.tpl");
-$mail->setSubject($mail_data);
-$mail_data = $smarty->fetch("mail/weekly_calendar_email.tpl");
-$mail->setHtml($mail_data, strip_tags($mail_data));
+//$mail = new TikiMail();
+//$mail_data = $smarty->fetch("mail/weekly_calendar_subject.tpl");
+//$mail->setSubject($mail_data);
+//$mail_data = $smarty->fetch("mail/weekly_calendar_email.tpl");
+//$mail->setHtml($mail_data, strip_tags($mail_data));
 //$mail->send(array($prefs['weekly_calendar_to_email']));
 //$mail->send(array('jkimdon@gmail.com'));
 //$smarty->display("mail/weekly_calendar_subject.tpl");
 $smarty->display("mail/weekly_calendar_email.tpl");
+die;
 
 header('Location: tiki-calendar.php?todate=' . $start_date);
 exit;
