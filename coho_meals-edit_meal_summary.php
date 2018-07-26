@@ -117,8 +117,10 @@ if ( $mealtype == "recurring" ) {
 }
 
 $allowed_to_edit = false;
-if ( $is_meal_admin ) $allowed_to_edit = true;
-if ( $cohomeals->has_head_chef( $mealId ) == $user ) $allowed_to_edit = true;
+//if ( $is_meal_admin ) $allowed_to_edit = true;
+//if ( $cohomeals->has_head_chef( $mealId ) == $user ) $allowed_to_edit = true;
+$allowed_to_edit = true; // let's let anybody with a meal account do the meal summary
+$smarty->assign( 'allowed_to_edit', $allowed_to_edit );
 
 // if already non-recurring meal, we can get on with it
 if ( $mealtype == "regular" ) {
