@@ -77,8 +77,14 @@ $smarty->assign('mealnotes', $meal["notes"]);
 
 $smarty->assign('mealdatetime', $mealdatetime );
 $smarty->assign('mealcancelled', $meal["cancelled"]);
-$signupdatetime = strtotime("-".$meal["signup_deadline"]." days",$mealdatetime);
-$smarty->assign('signup_deadline', $signupdatetime);
+$tmpsignupdatetime = strtotime("-".$meal["signup_deadline"]." days",$mealdatetime);
+$deadline = new DateTime();
+$deadline->setTimestamp( $tmpsignupdatetime );
+$tz = TikiDate::TimezoneIsValidId($prefs['server_timezone']) ? $prefs['server_timezone'] : 'PST';
+$deadline->setTimezone( new DateTimeZone( $tz ) );
+$deadline->setTime( 23, 59 );
+$signupdatetime = $deadline->format('U');
+$smarty->assign('signup_deadline', $signupdatetime );
 
 $past_deadline = false;
 if ( $signupdatetime < time() ) $past_deadline = true; 
