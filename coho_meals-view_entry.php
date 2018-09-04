@@ -77,14 +77,27 @@ $smarty->assign('mealnotes', $meal["notes"]);
 
 $smarty->assign('mealdatetime', $mealdatetime );
 $smarty->assign('mealcancelled', $meal["cancelled"]);
-$signupdatetime = strtotime("-".$meal["signup_deadline"]." days",$mealdatetime);
-$smarty->assign('signup_deadline', $signup_datetime);
+$tmpsignupdatetime = strtotime("-".$meal["signup_deadline"]." days",$mealdatetime);
+$deadline = new DateTime();
+$deadline->setTimestamp( $tmpsignupdatetime );
+$tz = TikiDate::TimezoneIsValidId($prefs['server_timezone']) ? $prefs['server_timezone'] : 'PST';
+$deadline->setTimezone( new DateTimeZone( $tz ) );
+$deadline->setTime( 23, 59 );
+$signupdatetime = $deadline->format('U');
+$smarty->assign('signup_deadline', $signupdatetime );
 
 $past_deadline = false;
 if ( $signupdatetime < time() ) $past_deadline = true; 
 $can_signup = !$past_deadline || $is_meal_admin; 
-if ( $cohomeals->paperwork_done( $mealId ) ) $can_signup = false;
-if ( $cohomeals->is_charged( $mealId ) ) $can_signup = false;
+if ( $mealtype == "recurring") {
+    $paperwork_done = false;
+    $is_charged = false;
+} else {
+    $paperwork_done = $cohomeals->paperwork_done( $mealId );
+    $is_charged = $cohomeals->is_charged( $mealId );
+}
+if ( $paperwork_done ) $can_signup = false;
+if ( $is_charged ) $can_signup = false;
 $smarty->assign('past_deadline', $past_deadline);
 $smarty->assign('can_signup', $can_signup);
 
@@ -132,7 +145,7 @@ $smarty->assign('buddies', $buddies);
 $foodlimits = $cohomeals->load_food_restrictions_by_meal($mealId);
 $smarty->assign('foodlimits', $foodlimits);
 
-$smarty->assign( 'paperwork_done', $cohomeals->paperwork_done($mealId) );
+$smarty->assign( 'paperwork_done', $paperwork_done );
 
 $smarty->assign('mid', 'coho_meals-view_entry.tpl');
 $smarty->display("tiki.tpl");

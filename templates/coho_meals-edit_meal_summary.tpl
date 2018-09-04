@@ -1,7 +1,9 @@
 <a href="coho_meals-view_entry.php?id={$mealId}&mealdatetime={$meal.mealdatetime}">
 <h1>Edit Meal Report for {$meal.title} on {$meal.mealdatetime|tiki_date_format:"%a, %b %e, %Y"} at {$meal.mealdatetime|tiki_date_format:"%a, %b %e"}</h1>
 </a>
-
+{if $allowed_to_edit eq false}
+    Please get the head chef to do the meal summary.
+{else}
 
 {if $paperwork_done eq true}
     Paperwork for this meal has been completed.<br>
@@ -113,3 +115,4 @@ $<input type="text" name="farmersDollars" size="3" value="{$farmersDollars}"/>.
 </form>
 
 {/if} {* end paperwork not yet done *}
+{/if} {* end allowed to edit *}

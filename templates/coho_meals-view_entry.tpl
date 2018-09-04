@@ -11,9 +11,9 @@
 	 {/if}
        </div>
        <p>
-       <th>Prices:</th><br>
-       <th>Adult:</th> {$adult_price}<br>
-       <th>Half price child:</th> {$kid_price}<br>
+       <th>-------- Prices ---------</th><br>
+       <th>Regular price:</th> {$adult_price}<br>
+       <th>Half price:</th> {$kid_price}<br>
        </p>
        <p></p>
 
