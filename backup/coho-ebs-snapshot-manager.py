@@ -7,8 +7,9 @@
 #
 import boto3
 import datetime
+import time
         
-INSTANCE_ID = 'i-0b027e229ca184e86'
+INSTANCE_ID='i-0b027e229ca184e86'
 
 client = boto3.client('ec2', region_name = 'us-west-2')
 ec2 = boto3.resource('ec2')
@@ -28,8 +29,13 @@ client.stop_instances(
 
 # It takes a few seconds for the instance to stop.  It needs to actually be stopped
 # before we take the snapshots.
-instance = ec2.Instance(id = INSTANCE_ID)
-instance.wait_until_stopped()
+
+while True:
+  time.sleep(10)
+  state = client.describe_instances(InstanceIds=[INSTANCE_ID])['Reservations'][0]['Instances'][0]['State']['Name']
+  if state == 'stopped':
+    break
+
 print "Stopped instance %s" % INSTANCE_ID
 
 try:
