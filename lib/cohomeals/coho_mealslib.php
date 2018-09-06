@@ -27,7 +27,7 @@ class CohoMealsLib extends TikiLib
             $this->loggedinuser = (string)filter_var( $usertoset, FILTER_SANITIZE_STRING );
     }
 
-    // used in edit participation handler
+    // used in edit participation handler, edit_meal_summary
     function create_override_from_recurrence( $recurrenceId, $unixmealdate ) {
 
         $newmealid = $this->getOne("SELECT MAX(cal_id) AS maxid FROM cohomeals_meal") + 1;
@@ -38,13 +38,40 @@ class CohoMealsLib extends TikiLib
         if ( !$meal ) return false;
         $mealdate = $this->date_format("%Y%m%d", $unixmealdate);
         
+        // make the override meal
         $sql = "INSERT INTO cohomeals_meal (cal_id, cal_date, cal_time, cal_signup_deadline, cal_base_price, " .
             "cal_max_diners, cal_menu, cal_notes, cal_cancelled, meal_title, recurrenceId, recurrence_override) " .
             "VALUES (";
         $sql .= $newmealid . ", " . $mealdate . ", " . $meal[0]["time"] . ", " . $meal[0]["signup_deadline"] . ", " .
             $meal[0]["base_price"] . ", 0, '" . $meal[0]["menu"] . "', '', 0, '" . $meal[0]["meal_title"] . "', " . $recurrenceId . ", true)";
         $result = $this->query($sql);
+
+        ///////////
+        // insert the recurring participants 
+
+        // crew
+        $crew = $this->load_recurring_crew($recurrenceId);
+        foreach( $crew as $cr ) {
+            $sql = "INSERT INTO cohomeals_meal_participant (cal_id, cal_login, cal_type, cal_notes ) VALUES ("
+                . $newmealid . ", '" . $cr["username"] . "', 'C'" . ", '" . $cr['job'] . "')";
+            if ( !$this->query($sql) ) {
+                $smarty->assign('msg', 'Error adding recurring crew.');
+                $smarty->display("error.tpl");
+                die;
+            }
+        }
         
+        // diners (no recurring guests)
+        $diners = $this->load_diners($recurrenceId, "recurring");
+        foreach( $diners as $diner ) {
+            $sql = "INSERT INTO cohomeals_meal_participant (cal_id, cal_login, cal_type ) VALUES ("
+                . $newmealid . ", '" . $diner["username"] . "', 'M'" . ")";
+            if ( !$this->query($sql) ) {
+                $smarty->assign('msg', 'Error adding recurring crew.');
+                $smarty->display("error.tpl");
+                die;
+            }
+        }
         if ($result) return $newmealid;
         else return false;
     }
@@ -191,7 +218,7 @@ class CohoMealsLib extends TikiLib
   {
     if ($mealtype == "recurring") {
         $query = "SELECT userId FROM cohomeals_participant_recurrence" .
-            " WHERE userId = $mealid AND participant_type = 'M'";
+            " WHERE recurringMealId = $mealid AND participant_type = 'M'";
     } else {
         $query = "SELECT cal_login FROM cohomeals_meal_participant " .
             "WHERE cal_id = $mealid AND (cal_type = 'M' OR cal_type = 'T')";
