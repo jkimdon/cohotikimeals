@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3.5
 #
 # coho-ebs-snapshot-manager.py - daily snapshot management script
 #
@@ -6,22 +6,74 @@
 # This script is executed daily.
 #
 import boto3
-import datetime
 import time
+from datetime import timedelta, datetime, timezone
+
+INSTANCE_ID = 'i-0b027e229ca184e86'
+ACCOUNT_ID = '660983422489'
+
+client = boto3.client('ec2', region_name = 'us-west-2')
+
+def delete_snapshots():
+    #
+    # Delete old snapshots
+    #
+    # Keep the last 7 days of daily snapshots
+    # Keep a snapshot from the first of every month for 1 year
+    # Delete everything else.
+    #
+    # Find 'Daily' snapshots (those not taken on the first of the month) that are older than 7 days.  Delete them.
+    #
+    snapshots = client.describe_snapshots(
+      Filters=[
+          {
+            'Name': 'tag:Type',
+            'Values': [
+                'Daily',
+            ]
+          },
+      ],
+      OwnerIds=[
+          ACCOUNT_ID,
+      ]
+    )
+
+    sevenDaysAgo = datetime.now(timezone.utc) - timedelta(days=7)
+    for snapshot in snapshots['Snapshots']:
+        if snapshot['StartTime'] < sevenDaysAgo and snapshot['Tags'][0]['Value'] == 'Daily':
+            print('Deleting snapshot: %s' % snapshot['Description'])
+            client.delete_snapshot(SnapshotId=snapshot['SnapshotId'])
     
-def lambda_handler(event, context):
-    INSTANCE_ID='i-0b027e229ca184e86'
-    
-    client = boto3.client('ec2', region_name = 'us-west-2')
-    ec2 = boto3.resource('ec2')
-    
+    # Find 'Monthly' snapshots (taken on the first of the month) that are older than one year.  Delete them.
+    #
+    snapshots = client.describe_snapshots(
+      Filters=[
+          {
+            'Name': 'tag:Type',
+            'Values': [
+                'Daily',
+            ]
+          },
+      ],
+      OwnerIds=[
+          ACCOUNT_ID,
+      ]
+    )
+
+    oneYearAgo = datetime.now(timezone.utc) - timedelta(days=365)
+    for snapshot in snapshots['Snapshots']:
+        if snapshot['StartTime'] < oneYearAgo and snapshot['Tags'][0]['Value'] == 'Monthly':
+            print('Deleting snapshot %s' % snapshot['Description'])
+            client.delete_snapshot(SnapshotId=snapshot['SnapshotId'])
+
+def create_snapshots():
     #
     # Create today's snapshots
     #
     
     # Stop the instance.  This ensures that the EBS volumes are in a consistent state and
     # we will get a good snapshot.
-    print "Stopping instance %s" % INSTANCE_ID
+    print("Stopping instance %s" % INSTANCE_ID)
     client.stop_instances(
         InstanceIds = [
             INSTANCE_ID,
@@ -37,7 +89,7 @@ def lambda_handler(event, context):
       if state == 'stopped':
         break
     
-    print "Stopped instance %s" % INSTANCE_ID
+    print("Stopped instance %s" % INSTANCE_ID)
     
     try:
     
@@ -45,13 +97,13 @@ def lambda_handler(event, context):
       # do our best to ensure that whatever happens (even if the backup fails) we
       # start the instance after we are done.
     
-      day = datetime.datetime.today().strftime('%d')
+      day = datetime.today().strftime('%d')
     
-      if day == 01:
+      if day == '01':
           # This is the snapshot for the first day of the month.
           # Call this snapshot a 'monthly' snapshot.
           # This snapshot will be retained longer than the daily snapshot.
-          print "Creating monthly snapshot"
+          print("Creating monthly snapshot")
           tagSpec = [
               {
                   'ResourceType': 'snapshot',
@@ -64,7 +116,7 @@ def lambda_handler(event, context):
               },
           ]
       else:
-          print "Creating daily snapshot"
+          print("Creating daily snapshot")
           # This is the snapshot for something other than the first day of the month.
           # Call this snapshot a 'daily' snapshot.
           tagSpec = [
@@ -79,12 +131,12 @@ def lambda_handler(event, context):
               },
           ]
     
-      YYYYMMDD = datetime.datetime.today().strftime('%Y%m%d')
+      YYYYMMDD = datetime.today().strftime('%Y%m%d')
     
       # Actually create the snapshots.
     
       # Snapshot the root filesystem volume.
-      print "Creating rootfs snapshot"
+      print("Creating rootfs snapshot")
       client.create_snapshot(
           Description = '/ %s' % (YYYYMMDD),
           VolumeId = 'vol-0ebc31751ee23c086',
@@ -92,7 +144,7 @@ def lambda_handler(event, context):
       )
     
       # Snapshot the volume where we store the website.
-      print "Creating /var/www snapshot"
+      print("Creating /var/www snapshot")
       client.create_snapshot(
           Description = '/var/www %s' % (YYYYMMDD),
           VolumeId = 'vol-07a475b8d450db3ef',
@@ -100,7 +152,7 @@ def lambda_handler(event, context):
       )
     
       # Snapshot the volume where we store mysql data.
-      print "Creating /var/lib/mysql snapshot"
+      print("Creating /var/lib/mysql snapshot")
       client.create_snapshot(
           Description = '/var/lib/mysql %s' % (YYYYMMDD),
           VolumeId = 'vol-0559ccba5975f9745',
@@ -113,7 +165,7 @@ def lambda_handler(event, context):
     # The snapshots are being created now we can start the instance.  We just
     # needed the instance stopped in order to get the volumes in a consistent state
     # to start the snapshots.
-    print "Starting instance %s" % INSTANCE_ID
+    print("Starting instance %s" % INSTANCE_ID)
     client.start_instances(
         InstanceIds = [
             INSTANCE_ID
@@ -124,37 +176,10 @@ def lambda_handler(event, context):
         "statusCode": 200
     }
 
+def lambda_handler(event, context):
+    create_snapshots()
+    delete_snapshots()
 
-
-
-    #
-    # TODO - Delete old snapshots
-    #
-    # Keep the last 7 days of daily snapshots
-    # Keep a snapshot from the first of every month for 1 year
-    # Delete everything else.
-    
-    #
-    # Find snapshots that were not taken on the first of the month that are older than 7 days.  Delete them.
-    #
-    #SEVEN_DAYS_AGO=`date -d '7 days ago' +%Y-%m-%d`
-    #SNAPSHOTS=($(/usr/bin/aws ec2 describe-snapshots --region us-west-2 --owner-ids 660983422489 --filters Name=tag:Type,Values=Daily --query "Snapshots[?StartTime<\`$SEVEN_DAYS_AGO\`].SnapshotId" --output text))
-    
-    #echo "Would delete $SNAPSHOTS"
-    #for SNAPSHOT in $SNAPSHOTS; do
-    #  /usr/bin/aws ec2 delete-snapshot --snapshot-id $SNAPSHOT
-    #done
-    
-    #
-    # Find snapshots that are older than 1 year, delete them.
-    #
-    #ONE_YEAR_AGO=`date -d '1 year ago' +%Y-%m-%d`
-    #SNAPSHOTS=($(/usr/bin/aws ec2 describe-snapshots --region us-west-2 --owner-ids 660983422489 --filters Name=tag:Type,Values=Monthly --query "Snapshots[?StartTime<\`$ONE_YEAR_AGO\`].SnapshotId" --output text))
-    
-    #echo "Would delete $SNAPSHOTS"
-    #for SNAPSHOT in $SNAPSHOTS; do
-    #  /usr/bin/aws ec2 delete-snapshot --snapshot-id $SNAPSHOT
-    #done
 
 if __name__ == '__main__':
     lambda_handler(None, None)
