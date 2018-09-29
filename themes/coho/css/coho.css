@@ -8624,6 +8624,14 @@ footer.footer {
     margin-top: 30px; /* 30px top margin to avoid conflict with the close button on smaller screens */
 }
 
+/* button on overlay */
+.overlay .btn {
+    display: inline;
+    font-size: 20px;
+    font-weight: bold;
+    color: #1b1cc4;
+}
+
 /* The navigation links inside the overlay */
 .overlay a {
     padding: 8px;

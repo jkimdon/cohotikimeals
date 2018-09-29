@@ -592,7 +592,8 @@ class CalendarLib extends TikiLib
                   $crew = $cohoml->load_crew($mealid);
                   
                   // description is what comes up on the overlay
-                  $description = "<a href=coho_meals-view_entry.php?id=" . $mealid . "&mealdatetime=" . $mealdatetime . ">" . $mealtitle . "</a><br><b>";
+                  $description = "<a href=coho_meals-view_entry.php?id=" . $mealid . "&mealdatetime=" . $mealdatetime . ">" . $mealtitle . "</a><br>";
+                  $description .= "<a class=\"btn btn-default\" width=\"200px\" href=\"coho_meals-view_entry.php?id=" . $mealid . "&mealdatetime=" . $mealdatetime . "\">" . "Click here for details</a><br><b>";
                   $description .= TikiLib::date_format('%I:%M %p', $mealdatetime) . " on ";
                   $description .= TikiLib::date_format('%a, %b %e, %Y', $mealdatetime) . "<br>";
                   $description .= "<u>Signup by:</u> " . TikiLib::date_format('%a, %b %e', strtotime("-".$meal["cal_signup_deadline"]." days",$mealdatetime)) . "<br>";
@@ -679,7 +680,8 @@ class CalendarLib extends TikiLib
               $crew = $cohoml->load_recurring_crew($recurrenceId);
 
               // description is what comes up on the overlay
-              $description = "<a href=coho_meals-view_entry.php?recurrenceId=" . $recurrenceId . "&mealdatetime=" . $mealdatetime .">" . $mealtitle . "</a><br><b>";
+              $description = "<a href=coho_meals-view_entry.php?recurrenceId=" . $recurrenceId . "&mealdatetime=" . $mealdatetime .">" . $mealtitle . "</a><br>";
+              $description .= "<a class=\"btn btn-default\" width=\"200px\" href=\"coho_meals-view_entry.php?recurrenceId=" . $recurrenceId . "&mealdatetime=" . $mealdatetime . "\">" . "Click here for details</a><br><b>";
               $description .= TikiLib::date_format('%I:%M %p', $mealdatetime) . " on ";
               $description .= TikiLib::date_format('%a, %b %e, %Y', $mealdatetime) . "<br>";
               $description .= "<u>Signup by:</u> " . TikiLib::date_format('%a, %b %e', strtotime("-".$meal["signup_deadline"]." days",$mealdatetime)) . "<br>";
