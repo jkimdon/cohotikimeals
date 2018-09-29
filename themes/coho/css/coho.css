@@ -8625,7 +8625,7 @@ footer.footer {
 }
 
 /* button on overlay */
-.overlay .btn {
+.overlay a.btn {
     display: inline;
     font-size: 20px;
     font-weight: bold;
