@@ -728,7 +728,8 @@ class CohoMealsLib extends TikiLib
       $allrows = $this->fetchAll($query);
       foreach( $allrows as $diner ) { 
           $multiplier = $this->get_multiplier( $diner["cal_login"] );
-          $amount = -1*$multiplier * $base_price;
+          $tmpamount = -1*$multiplier * $base_price;
+          $amount = floor($tmpamount);
           $realname = $this->get_user_preference($diner["cal_login"], 'realName', $diner["cal_login"]);
           if ($realname == '' ) $realname = $diner["cal_login"];
           $description = $realname . " dining. (multiplier = " . $multiplier . ")"; 
@@ -740,7 +741,8 @@ class CohoMealsLib extends TikiLib
           "WHERE cal_meal_id = $mealId AND (cal_type = 'M' OR cal_type = 'T')";
       $allrows = $this->fetchAll($query);
       foreach( $allrows as $guest ) {
-          $amount = -1*$guest["meal_multiplier"] * $base_price;
+          $tmpamount = -1*$guest["meal_multiplier"] * $base_price;
+          $amount = floor($tmpamount);
           $description = "Guest " . $guest["cal_fullname"] . " dining (multiplier = " . $guest["meal_multiplier"] . ")";
           $this->charge_person( $guest["cal_host"], $amount, $description, $mealId );
       }
@@ -765,7 +767,8 @@ class CohoMealsLib extends TikiLib
       $balance = 0;
       $last_balance = 0;
       $last_time = 0;
-
+      $amount = floor($amount);
+      
       $sql = "SELECT cal_amount, cal_running_balance, cal_timestamp " .
           "FROM cohomeals_financial_log " . 
           "WHERE cal_billing_group = '$billingGroup' ".
@@ -782,7 +785,7 @@ class CohoMealsLib extends TikiLib
               "at time $last_time, balance = $last_balance; " .
               "balance sum = $balance<br>";
           echo $errormsg;
-          die;
+//          die; // don't die since then it messes everything else up. ideally it would send admin an email... (fixme)
       }
 
       $sql = "SELECT MAX(cal_log_id) FROM cohomeals_financial_log";
