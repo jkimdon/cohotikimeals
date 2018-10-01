@@ -897,10 +897,22 @@ class CohoMealsLib extends TikiLib
           return false;
       }
       $mealinfo = array();
-      $this->load_meal_info( "regular", $mealId, $mealinfo );
-      return $this->coho_datetime_to_unix( $mealinfo["cal_date"], $mealinfo["cal_time"] );
+      $query = "SELECT cal_date, cal_time FROM cohomeals_meal WHERE cal_id = $mealId";
+      $res = $this->query( $query );
+      if ( $info = $res->fetchRow() ) 
+          return $this->coho_datetime_to_unix( $info["cal_date"], $info["cal_time"] );
+      else return 0;
   }
 
+  // used in viewing financial logs
+  // regular meals only
+  function get_mealtitle( $mealId ) {
+      $query = "SELECT meal_title FROM cohomeals_meal WHERE cal_id = $mealId";
+      if ( $title = $this->getOne( $query ) )
+          return $title;
+      else return "Community Meal";
+  }
+  
   
   // used several places
   function coho_datetime_to_unix($YYYYMMDD, $HHMM)
@@ -1023,6 +1035,19 @@ class CohoMealsLib extends TikiLib
       else return false;
   }
 
+  // used in admin financial view in coho_meals-user_info.php
+  function get_billingGroups( &$billingArray ) {
+      if ( !$this->is_meal_admin ) return NULL;
+      $billingArray[0] = 'All';
+      $query = "SELECT billingGroupId, billingGroupName FROM cohomeals_billing_groups ORDER BY billingGroupName";
+      $allrows = $this->fetchAll($query);
+      foreach ( $allrows as $row ) {
+          $id = $row['billingGroupId'];
+          $billingArray[$id] = $row['billingGroupName'];
+      }
+      return true;
+  }
+  
   // used in charge meals
   function make_new_billingGroup( $userId ) {
 

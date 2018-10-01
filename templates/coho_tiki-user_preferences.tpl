@@ -140,7 +140,7 @@
       <td><span class="description">{$userinfo.lastLogin|tiki_long_datetime}</span></td>
     </tr>
   
-    <td colspan="2" class="input_submit_container"><input type="submit" name="new_prefs" value="{tr}Save changes{/tr}" /></td>
+    <td colspan="2" class="input_submit_container"><input class="btn-default" type="submit" name="new_prefs" value="{tr}Save changes{/tr}" /></td>
   
   </table>
 {/tab}
@@ -191,7 +191,7 @@
       {/if}
     
       <tr>
-        <td colspan="2" class="input_submit_container"><input type="submit" name="chgadmin" value="{tr}Save changes{/tr}" /></td>
+        <td colspan="2" class="input_submit_container"><input class="btn-default" type="submit" name="chgadmin" value="{tr}Save changes{/tr}" /></td>
       </tr>
     </table>
   </form>
