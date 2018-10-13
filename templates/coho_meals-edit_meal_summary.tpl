@@ -41,15 +41,14 @@
 {/foreach}
 {for $j=0 to 2}
     <tr><td><input type="text" size="30" maxlength="70" name="newguest[]" value=""/></td>
-        <td><input type="number" step="0.01" name="multiplier[{$i}]" value="1.0"/></td>
+        <td><input type="number" step="0.01" name="multiplier[]" value="1.0"/></td>
 	<td><select name="host[]">
 	       <option value="none" selected="selected">Select host</option>
 	       {foreach item=hostoption from=$mealpeople}
-	           <option value="{$hostoption.username}">{$hostoption.realName}</option>
+	           <option value="{$hostoption.username}" {if $hostoption.username eq $formfiller}selected="selected"{/if}>{$hostoption.realName}</option>
 	       {/foreach}
 	    </select></td>
     </tr>
-    {$i=$i+1}
 {/for}
 </table>
 

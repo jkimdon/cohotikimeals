@@ -36,7 +36,10 @@ if ( !isset( $_REQUEST["id"] ) || empty ( $mealId ) || $mealId <= 0 || ! is_nume
 
 $cohomeals = new CohoMealsLib;
 $cohomeals->set_meal_admin( $is_meal_admin );
-$mealdatetime = $cohomeals->refund_meal( $mealId );
+$cohomeals->refund_meal( $mealId );
+$mealinfo = array();
+$cohomeals->load_meal_info( "regular", $mealId, $mealinfo );
+$mealdatetime = $mealinfo["mealdatetime"];
 if ( $deletepaperwork ) $cohomeals->delete_entered_expenses( $mealId );
 
 $nexturl = "coho_meals-view_entry.php?id=" . $mealId . "&mealdatetime=" . $mealdatetime;

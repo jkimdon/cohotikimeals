@@ -151,6 +151,7 @@ if ( $mealtype == "regular" ) {
             $mealpeople[] = array( "username" => $person_username, "realName" => $person_realname, "status" => $status );
         }
         $smarty->assign('mealpeople', $mealpeople);
+        $smarty->assign('formfiller', $user);
         
         $guest_diners = $cohomeals->load_guests( $mealId );
         $smarty->assign( 'guest_diners', $guest_diners );

@@ -62,8 +62,10 @@ if ( isset($_REQUEST["walkin"] ) ) {
     foreach( $walkin as $wi ) {
         $multiplier = $cohomeals->get_multiplier( $wi );
         $amount = -1 * $base_price * $multiplier;
-        $description = $cohomeals->get_fullname( $wi ) . " dining (multiplier " . $multiplier . ")";
-        $cohomeals->charge_person( $wi, $amount, $description, $mealId );
+        $fullname = $cohomeals->get_fullname( $wi );
+        $description = $fullname . " dining (multiplier " . $multiplier . ")";
+        $billingGroup = $cohomeals->get_billingId( $wi );
+        $cohomeals->charge_person( $billingGroup, $amount, $description, $mealId, $fullname, $wi );
 
         $query = "INSERT INTO cohomeals_meal_participant (cal_id, cal_login, cal_type) VALUES (" .
             $mealId . ", '$wi', 'M')"; 
@@ -81,15 +83,20 @@ if ( isset($_REQUEST["walkin"] ) ) {
 if ( isset($_REQUEST["newguest"] ) ) {
     $i=0;
     foreach ( $newguest as $ng ) {
-        $hostname = $cohomeals->get_fullname( $host[$i] );
-        $mult = $multiplier[$i];
+        if ( $host[$i] == "none" ) {
+            $cur_host = $user; error_log("host was unset, so set to user filling out the form: " . $user );
+        } else $cur_host = $host[$i];
+        $hostname = $cohomeals->get_fullname( $cur_host );
+        $hostbilling = $cohomeals->get_billingId( $cur_host );
+        if ( !$hostbilling ) $hostbilling = $cohomeals->get_billingId( $user );
+        $mult = $multiplier[$i]; error_log("guest multiplier is " . $mult );
         if ( !is_numeric( $mult ) ) $mult = 1;
         $amount = -1*$mult*$base_price;
         $description = $ng . " dining (guest of " . $hostname . "), (multiplier " . $mult . ")";
-        $cohomeals->charge_person( $host[$i], $amount, $description, $mealId );
+        $cohomeals->charge_person( $hostbilling, $amount, $description, $mealId, $ng, $cur_host );
           
         $query = "INSERT INTO cohomeals_meal_guest (cal_meal_id, cal_fullname, cal_host, meal_multiplier, cal_type ) " .
-            "VALUES ( $mealId, '$ng', '" . $host[$i] . "', $mult, 'M' )";
+            "VALUES ( $mealId, '$ng', '" . $cur_host . "', $mult, 'M' )";
         if (!$cohomeals->query($query) ) {
             $smarty->assign('msg', 'Error entering guests.');
             $smarty->display("error.tpl");

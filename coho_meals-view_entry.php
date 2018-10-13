@@ -128,7 +128,7 @@ $diners = $cohomeals->load_diners($mealId, $mealtype, $user);
 $smarty->assign('diners', $diners);
 
 if ( $mealtype == "regular" ) {
-    $income = $cohomeals->diner_income( $mealId, false );
+    $income = $cohomeals->diner_income( $mealId, false ) / 100;
     $smarty->assign( 'income', $income );
     $numdiners = $cohomeals->count_diners( $mealId, false );
     $smarty->assign( 'numdiners', $numdiners );

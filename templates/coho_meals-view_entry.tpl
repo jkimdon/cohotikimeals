@@ -155,8 +155,9 @@
 	     	{$guest.realName} (guest of {$guest.hostrealname}) (cost multiplier = {$guest.meal_multiplier})
 	     	{if ($can_signup eq true) and ( ($guest.hostusername eq $loggedinuser) or ($is_meal_admin) )}
 	     	    &nbsp;&nbsp;&nbsp;
-		    {button href="coho_meals-signup_guest.php?guestName={$guest.realName}&id={$mealId}&type=M&action=D&host={$guest.hostusername}&mealtype={$mealtype}&mealdatetime={$mealdatetime}" _text="Remove"}<br>
+		    {button href="coho_meals-signup_guest.php?guestName={$guest.realName}&id={$mealId}&type=M&action=D&host={$guest.hostusername}&mealtype={$mealtype}&mealdatetime={$mealdatetime}" _text="Remove"}
 	     	{/if}
+		<br>
 	     {/foreach}
 	  {/if}
      	  {if ($can_signup eq true)}

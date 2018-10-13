@@ -655,8 +655,12 @@ class CohoMealsLib extends TikiLib
       return $cost;
   }
 
+  // gives income in *cents* to avoid rounding errors.
+  //    transfers to dollars should be done by caller if desired
   // used in meal summary
-  function diner_income( $mealId, $paperwork_done=true ) { // only non-recurring meals
+  // and in charge_person to make sure not double-charged.
+  //     - if billingGroup == 0, then do for all billing groups (i.e. in meal summary)
+  function diner_income( $mealId, $paperwork_done=true, $billingGroup=0 ) { // only non-recurring meals
       $income = 0;
 
       $query = "SELECT cal_base_price FROM cohomeals_meal WHERE cal_id = $mealId";
@@ -664,30 +668,40 @@ class CohoMealsLib extends TikiLib
       
       if ( $paperwork_done == false ) { // calculate from participant tables
           // meal plan participants
-          $query = "SELECT cal_login FROM cohomeals_meal_participant " .
+          $query2 = "SELECT cal_login FROM cohomeals_meal_participant " .
               "WHERE cal_id = $mealId AND (cal_type = 'M' OR cal_type = 'T')";
-          $allrows = $this->fetchAll($query);
-          foreach( $allrows as $diner ) {
-              $income += ( $this->get_multiplier( $diner["cal_login"] ) * $base_price ) / 100.00;
+          $allrows = $this->fetchAll($query2);
+          foreach( $allrows as $diner ) { 
+              if ( $billingGroup != 0 ) { 
+                  if ( $billingGroup != $this->get_billingId( $diner["cal_login"] ) )
+                      continue;
+              } 
+              $income += ( $this->get_multiplier( $diner["cal_login"] ) * $base_price );
           }
           
           // guests
-          $query = "SELECT meal_multiplier FROM cohomeals_meal_guest " .
+          $query = "SELECT meal_multiplier, cal_host FROM cohomeals_meal_guest " .
               "WHERE cal_meal_id = $mealId AND cal_type = 'M'";
           $allrows = $this->fetchAll($query);
           foreach( $allrows as $row ) { 
-              $income += ( $row["meal_multiplier"] * $base_price ) / 100.00;
+              if ( $billingGroup != 0 ) {
+                  if ( $billingGroup != $this->get_billingId( $row["cal_host"] ) ) 
+                      break;
+              } 
+              $income += ( $row["meal_multiplier"] * $base_price );
           }
       } else { // paperwork is done, so get info from financial log
 
           $query = "SELECT cal_amount FROM cohomeals_financial_log WHERE cal_meal_id = $mealId";
+          if ($billingGroup != 0) {
+              $query .= " AND cal_billing_group = $billingGroup";
+          }
           $allrows = $this->fetchAll($query);
           foreach( $allrows as $amt ) {
-              $income += $amt["cal_amount"] / 100;
+              $income += $amt["cal_amount"];
           }
           $income *= -1;
       }
-      $income = $income; // since they were all charges
       return $income;
   }
 
@@ -708,7 +722,7 @@ class CohoMealsLib extends TikiLib
       return $charged;
   }
   
-  // used in meal summary and cron
+  // used in meal summary and cron and charge_meal
   function charge_for_meal( $mealId, $chargeoverride=false ) { // non-recurring only. should have been changed to non-recurring before this
 
       // check to see if already charged
@@ -730,10 +744,11 @@ class CohoMealsLib extends TikiLib
           $multiplier = $this->get_multiplier( $diner["cal_login"] );
           $tmpamount = -1*$multiplier * $base_price;
           $amount = floor($tmpamount);
+          $bg = $this->get_billingId( $diner["cal_login"] );
           $realname = $this->get_user_preference($diner["cal_login"], 'realName', $diner["cal_login"]);
           if ($realname == '' ) $realname = $diner["cal_login"];
-          $description = $realname . " dining. (multiplier = " . $multiplier . ")"; 
-          $this->charge_person( $diner["cal_login"], $amount, $description, $mealId );
+          $description = $realname . " dining. (multiplier = " . $multiplier . ")";
+          $this->charge_person( $bg, $amount, $description, $mealId, $realname, $diner["cal_login"] );
       }
 
       // guests
@@ -741,25 +756,67 @@ class CohoMealsLib extends TikiLib
           "WHERE cal_meal_id = $mealId AND (cal_type = 'M' OR cal_type = 'T')";
       $allrows = $this->fetchAll($query);
       foreach( $allrows as $guest ) {
+          $bg = $this->get_billingId( $guest["cal_host"] );
           $tmpamount = -1*$guest["meal_multiplier"] * $base_price;
           $amount = floor($tmpamount);
           $description = "Guest " . $guest["cal_fullname"] . " dining (multiplier = " . $guest["meal_multiplier"] . ")";
-          $this->charge_person( $guest["cal_host"], $amount, $description, $mealId );
+          $this->charge_person( $bg, $amount, $description, $mealId, $guest["cal_fullname"], $guest["cal_host"] );
       }
 
-      // set charged flag
-      $query = "UPDATE cohomeals_meal SET diners_charged=1 WHERE cal_id = $mealId";
-      if (!$this->query($query) ) {
-          echo "Error charging meal.";
-          die;
+      // now double-check to be sure charges are as expected
+      //
+      // go through each billing group
+      $query = "SELECT cal_billing_group, cal_login FROM cohomeals_financial_log WHERE cal_meal_id = $mealId ORDER BY cal_billing_group";
+      $allrows = $this->fetchAll($query);
+      $prev_bg = 0;
+      foreach( $allrows as $bg ) {
+          $billingGroup = $bg["cal_billing_group"];
+          if ( $billingGroup != $prev_bg ) {
+              $prev_bg = $billingGroup;
+              $expected_charges = -1*$this->diner_income( $mealId, false, $billingGroup );
+              $actual_charges = -1*$this->diner_income( $mealId, true, $billingGroup );
+              $diff = $expected_charges - $actual_charges;
+              if ( $expected_charges != $actual_charges ) { 
+                  $this->enter_finlog( $billingGroup, $diff, "Fixing up charges for this meal", $mealId, $bg["cal_login"] );
+              }
           }
+      }
+
+      // set the charged flag
+      $query = "UPDATE cohomeals_meal SET diners_charged=1 WHERE cal_id = $mealId";
+      if ( !$this->query( $query ) ) {
+          $smarty->assign('msg', 'Error refunding meal.');
+          $smarty->display("error.tpl");
+          die;
+      }
   }
 
 
-  // used in charge for meal
-  function charge_person( $userId, $amount, $description, $mealId ) {
-      $billingGroup = false;
-      $billingGroup = $this->get_billingId( $userId ); 
+  // used in charge for meal and refund meal
+  //   checks if the person has already been specifically charged. doesn't check for billing-group-wide charges or refunds. that should be done separately
+  function charge_person( $billingGroup, $amt, $description, $mealId, $fullname, $userId ) {
+
+      $amount = floor($amt);
+      // previous charges should have full name in log description
+      $query = "SELECT cal_amount FROM cohomeals_financial_log WHERE cal_meal_id = $mealId AND cal_billing_group = $billingGroup AND cal_description LIKE '%" . $fullname . "%'"; 
+      $allwithlogin = $this->fetchAll($query);
+      $precharged = 0;
+      foreach( $allwithlogin as $preamt ) {
+          $precharged += $preamt["cal_amount"];
+      }
+      if ( $precharged != $amount ) {
+          $this->enter_finlog( $billingGroup, $amount-$precharged, $description, $mealId, $userId );
+      }
+  }
+
+  
+  // used by charge_person, charge_for_meal (also expect to use in refund and credit functions)
+  //
+  // WARNING: does not check for anything except running balance. other checking should be done before calling this.
+  function enter_finlog( $billingGroup, $amt, $description, $mealId, $userId ) {
+
+      if ( ($billingGroup <= 0) || (!is_numeric($billingGroup)) )
+          $billingGroup = $this->get_billingId( $userId ); 
       if ( ($billingGroup == false) || (!is_numeric($billingGroup)) || ($billingGroup <=0) ) {
           $billingGroup = $this->make_new_billingGroup( $userId );
       }
@@ -767,9 +824,9 @@ class CohoMealsLib extends TikiLib
       $balance = 0;
       $last_balance = 0;
       $last_time = 0;
-      $amount = floor($amount);
+      $amount = floor($amt);
       
-      $sql = "SELECT cal_amount, cal_running_balance, cal_timestamp " .
+      $sql = "SELECT cal_amount, cal_running_balance, cal_timestamp, cal_meal_id " .
           "FROM cohomeals_financial_log " . 
           "WHERE cal_billing_group = '$billingGroup' ".
           "ORDER BY cal_log_id";
@@ -778,6 +835,9 @@ class CohoMealsLib extends TikiLib
           $balance += $row['cal_amount'];
           $last_balance = $row['cal_running_balance'];
           $last_time = $row['cal_timestamp'];
+          if ( $row['cal_meal_id'] == $mealId ) {
+              $mealamount += $row['cal_amount'];
+          }
       }
 
       if ( $last_balance != $balance ) {
@@ -788,64 +848,61 @@ class CohoMealsLib extends TikiLib
 //          die; // don't die since then it messes everything else up. ideally it would send admin an email... (fixme)
       }
 
-      $sql = "SELECT MAX(cal_log_id) FROM cohomeals_financial_log";
-      $maxid = $this->getOne( $sql );
-      $id = $maxid + 1;
-      $sql = "INSERT INTO cohomeals_financial_log " .
-          "( cal_log_id, cal_login, cal_billing_group, cal_description, " .
-          "cal_meal_id, cal_amount, cal_running_balance ) " . 
-          "VALUES ( $id, '$userId', $billingGroup, '$description', $mealId, $amount, ";
-      $balance += $amount;
-      $sql .= $balance . ")"; 
-      $this->query( $sql );
-
+      // enter the log
+      if ( $amount != 0 ) { // insert the charge
+          $sql = "SELECT MAX(cal_log_id) FROM cohomeals_financial_log";
+          $maxid = $this->getOne( $sql );
+          $id = $maxid + 1;
+          $sql = "INSERT INTO cohomeals_financial_log " .
+              "( cal_log_id, cal_login, cal_billing_group, cal_description, " .
+              "cal_meal_id, cal_amount, cal_running_balance ) " . 
+              "VALUES ( $id, '$userId', $billingGroup, '$description', $mealId, $amount, ";
+          $balance += $amount;
+          $sql .= $balance . ")";
+          $this->query( $sql );
+      }
       return true;
   }
-
 
   // used by meal admin only at this point
   // find and replace all diner charges for meal (but don't remove the peoples' names from the signup)
   // regular meals only since to have been charged, they should have been transformed into regular
-  function refund_meal( $mealId, $msg='' ) {
+  function refund_meal( $mealId ) {
       if ( !$this->is_meal_admin ) {
           return false;
       }
-      if ($msg == '') {
-          $mealinfo = array();
-          $this->load_meal_info( "regular", $mealId, $mealinfo );
-          $mealdatetime = $mealinfo["mealdatetime"];
-          $msg = "Refund for " . $mealinfo["title"] . " meal on " . $this->date_format( "%A, %b %e, %Y", $mealdatetime) . " at " . $this->date_format( "%I:%M %p", $mealdatetime);
-      }
 
-      // find all the financial entries for this meal, add up for each billing group and issue a refund
-      $query = "SELECT cal_login, cal_billing_group, cal_amount " .
-          "FROM cohomeals_financial_log WHERE cal_meal_id = $mealId ORDER BY cal_billing_group";
+      // have to deal with varying methods of previous refunds, including by-person and by-billing-group.
+      // 
+      // find all the financial entries for this meal 
+      //     and refund by user (below will double-check for each billing group)
+      // (should cover regular meal participants and guests since login is host)
+      $query = "SELECT cal_login, cal_billing_group, cal_amount, cal_description " .
+          "FROM cohomeals_financial_log WHERE cal_meal_id = $mealId ORDER BY cal_login";
       $allrows = $this->fetchAll( $query );
-      $prev_bg = 0; // there is no 0 billing group
-      $cur_bg = 0;
-      $prev_user = '';
-      $cum_amnt = 0;
-      foreach( $allrows as $row ) { 
-          $cur_bg = $row["cal_billing_group"];
-          if ( $cur_bg != $prev_bg ) {
-              if ( $prev_user != '' ) {
-                  $cum_amt *= -1; // change from charge to credit
-                  // finish the refund for the previous billing group
-                  $this->charge_person( $prev_user, $cum_amt, $msg, $mealId );
-                  $cum_amt = 0;
-              }
-              $prev_bg = $cur_bg;
-              $prev_user = $row["cal_login"];
-          }
-          $cum_amt += $row["cal_amount"]; 
-      }
-      // now do the last one
-      if ( $cur_bg != 0 ) { // make sure there was at least one
-          // finish the refund for the previous billing group
-          $cum_amt *= -1;
-          $this->charge_person( $prev_user, $cum_amt, $msg, $mealId );
+      foreach( $allrows as $row ) {
+          $amt = -1*$row["cal_amount"]; // change to credit
+          $msg = "Refund for: " . $row["cal_description"];
+          $this->enter_finlog( $row["cal_billing_group"], $amt, $msg, $mealId, $row["cal_login"] );
       }
 
+      // now double-check to be sure charges are all removed
+      //
+      // go through each billing group
+      $query = "SELECT cal_billing_group, cal_login FROM cohomeals_financial_log WHERE cal_meal_id = $mealId ORDER BY cal_billing_group";
+      $allrows = $this->fetchAll($query);
+      $prev_bg = 0;
+      foreach( $allrows as $bg ) {
+          $billingGroup = $bg["cal_billing_group"];
+          if ( $billingGroup != $prev_bg ) {
+              $prev_bg = $billingGroup;
+              $actual_income = $this->diner_income( $mealId, true, $billingGroup );
+              if ( $actual_income != 0 ) {
+                  $this->enter_finlog( $billingGroup, -1*$actual_income, "Fixing up refunds for this meal", $mealId, $bg["cal_login"] );
+              }
+          }
+      }
+      
       // reset the charged flag
       $query = "UPDATE cohomeals_meal SET diners_charged=NULL WHERE cal_id = $mealId";
       if ( !$this->query( $query ) ) {

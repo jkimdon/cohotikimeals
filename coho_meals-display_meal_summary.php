@@ -36,7 +36,7 @@ $smarty->assign( 'paperwork_done', $paperwork_done );
 
 if ( !$paperwork_done ) { // getting values from the form not the database
 
-    $presignup_income = $cohomeals->diner_income( $mealId, false ); 
+    $presignup_income = $cohomeals->diner_income( $mealId, false )/100; 
     $smarty->assign( 'presignup_income', $presignup_income );
 
     $walkin_income = 0;
@@ -143,7 +143,7 @@ if ( !$paperwork_done ) { // getting values from the form not the database
     
 } else { // getting data from the database
 
-    $presignup_income = $cohomeals->diner_income( $mealId, true );
+    $presignup_income = $cohomeals->diner_income( $mealId, true )/100;
     $smarty->assign( 'presignup_income', $presignup_income );
 
     $totalincome = $presignup_income;
