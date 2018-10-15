@@ -42,9 +42,15 @@ $smarty->assign( 'is_meal_admin', $is_meal_admin );
 // read in post variables for filtering
 $filterstart = new DateTime();
 $filterend = new DateTime($today);
-if ( isset($_REQUEST["finfilter_start_Month"]) && isset($_REQUEST["finfilter_end_Month"]) ) {
-    $filterstart->setDate( $_REQUEST["finfilter_start_Year"], $_REQUEST["finfilter_start_Month"], $_REQUEST["finfilter_start_Day"] );
-    $filterend->setDate( $_REQUEST["finfilter_end_Year"], $_REQUEST["finfilter_end_Month"], $_REQUEST["finfilter_end_Day"] );
+if ( isset($_REQUEST["finfilter_start_Month"]) ) {
+    if ( isset($_REQUEST["finfilter_start_Day"]) ) {
+        $filterstart->setDate( $_REQUEST["finfilter_start_Year"], $_REQUEST["finfilter_start_Month"], $_REQUEST["finfilter_start_Day"] );
+    } else { // the "other admin" tab doesn't have a "day"
+        $filterstart->setDate( $_REQUEST["finfilter_start_Year"], $_REQUEST["finfilter_start_Month"], 1 );
+    }
+    if ( isset($_REQUEST["finfilter_end_Month"]) ) { // the "other admin" tab doesn't have an end
+        $filterend->setDate( $_REQUEST["finfilter_end_Year"], $_REQUEST["finfilter_end_Month"], $_REQUEST["finfilter_end_Day"] );
+    }
     if ($filterend < $filterstart) {
         $filterstart = clone $filterend;
         $filterstart->modify( '-1 day' );
@@ -119,7 +125,7 @@ if ( $sortbymeal ) {
     $smarty->assign('adminfinlog', $adminfinlog);
     $smarty->assign('finlog', $finlog);
     
-    // admin log tab
+    // admin financial tab
     if ( $is_meal_admin ) {
 
         $whereclause = "WHERE ";
@@ -143,6 +149,7 @@ if ( $sortbymeal ) {
             $adminfinlog[] = array( "cal_timestamp"=>$row["cal_timestamp"], "billingGroup"=>$bgname, "cal_description"=>$row["cal_description"], "cal_meal_id"=>$row["cal_meal_id"], "mealtitle"=>$mealtitle, "mealdatetime"=>$mealdatetime, "cal_text"=>$row["cal_text"], "cal_amount"=>$row["cal_amount"], "cal_running_balance"=>$row["cal_running_balance"]);
         }
         $smarty->assign('adminfinlog', $adminfinlog);
+        
     }
 } else { // sort by transaction date
 
@@ -184,7 +191,60 @@ if ( $sortbymeal ) {
         $smarty->assign('adminfinlog', $adminfinlog);
     }
 }
-    
+
+// other admin tabs
+if ( $is_meal_admin ) {
+
+    // admin list of meals not charged 
+    $query = "SELECT cal_id, meal_title FROM cohomeals_meal WHERE cal_cancelled=0 AND diners_charged IS NULL";
+    $newrows = $cohomeals->fetchAll($query);
+    $uncharged = array();
+    foreach( $newrows as $row ) {
+        $mealdatetime = $cohomeals->get_mealdatetime( $row["cal_id"] );
+        if ( $row["meal_title"] == "" ) $title = "Community Meal";
+        else $title = $row["meal_title"];
+        $uncharged[] = array( "cal_meal_id"=>$row["cal_id"],"mealdatetime"=>$mealdatetime,"mealtitle"=>$title );
+    } 
+    $smarty->assign('uncharged', $uncharged);
+
+    // admin list of meals with paperwork undone
+    $query = "SELECT cal_id, meal_title FROM cohomeals_meal WHERE cal_cancelled=0 AND paperwork_done IS NULL";
+    $newrows = $cohomeals->fetchAll($query);
+    $nopaperwork = array();
+    foreach( $newrows as $row ) {
+        $mealdatetime = $cohomeals->get_mealdatetime( $row["cal_id"] );
+        if ( $row["meal_title"] == "" ) $title = "Community Meal";
+        else $title = $row["meal_title"];
+        $nopaperwork[] = array( "cal_meal_id"=>$row["cal_id"],"mealdatetime"=>$mealdatetime,"mealtitle"=>$title );
+    } 
+    $smarty->assign('nopaperwork', $nopaperwork);
+
+    // admin list of meals that seem to be improperly charged
+    // (only one month at a time or it would take forever)
+
+    // find all the non-cancelled meals from the month starting at filterstart where diners have been charged
+    $mealsearch_start = clone $filterstart;
+    $mealsearch_start->modify( 'first day of this month' );
+    $mealsearch_end = clone $mealsearch_start;
+    $mealsearch_end->modify( 'last day of this month' );
+    $query = "SELECT cal_id FROM cohomeals_meal WHERE cal_cancelled=0 AND diners_charged IS NOT NULL AND (cal_date <= " . $mealsearch_end->format('Ymd') . ") AND (cal_date >= " . $mealsearch_start->format('Ymd') . ")";
+    $allrows = $cohomeals->fetchAll($query);
+    $badcharged = array();
+    foreach( $allrows as $row ) {
+        $mealdatetime = $cohomeals->get_mealdatetime( $row["cal_id"] );
+        $title = $cohomeals->get_mealtitle( $row["cal_id"] );
+        // check to see if the actual and expected charges are equal
+        $expected_charges = -1*$cohomeals->diner_income( $row["cal_id"], false );
+        $actual_charges = -1*$cohomeals->diner_income( $row["cal_id"], true );
+        if ( $expected_charges != $actual_charges ) {
+            $diff = $expected_charges - $actual_charges;
+            $badcharged[] = array( "cal_meal_id"=>$row["cal_id"],"mealdatetime"=>$mealdatetime,"mealtitle"=>$title,"chargediff"=>$diff);
+        }
+    }
+    $smarty->assign('badcharged',$badcharged);
+}
+
+
 $smarty->assign('mid', 'coho_tiki-user_info.tpl');
 $smarty->display("tiki.tpl");
 

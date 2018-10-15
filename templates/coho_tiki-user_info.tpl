@@ -1,9 +1,9 @@
 {* $Id: coho_tiki-user_info.tpl *}
 
 {if $userwatch ne $user}
-  {title help="Meal+Preferences"}{tr}Personal Meal Account:{/tr} {$userwatch}{/title}
+  {title help="Meal+Preferences"}{tr}Meal Program Account:{/tr} {$userwatch}{/title}
 {else}
-  {title help="Meal+Preferences"}{tr}Personal Meal Account:{/tr}{/title}
+  {title help="Meal+Preferences"}{tr}Meal Program Account:{/tr}{/title}
 {/if}
 
 
@@ -66,6 +66,30 @@ There is nothing to see here
      </table>     
 
     {/tab}
-{/if}
+    {tab name="Other admin"}
+    	 <table class="finhistory">
+	 	<tr><th>Meals with diners_charged=NULL</th></tr>
+		{foreach item=dm from=$uncharged}
+		   <tr class="{cycle values="even,odd"}"><td><a href=coho_meals-view_entry.php?id={$dm.cal_meal_id}&mealdatetime={$dm.mealdatetime}>{$dm.mealtitle}</a><br>(on {$dm.mealdatetime|tiki_date_format:"%a, %b %e, %Y"}) &nbsp;&nbsp;&nbsp; {button href="coho_meals-charge_meal.php?id={$dm.cal_meal_id}" _text="Charge"}</td></tr>
+		{/foreach}
+	 </table>
+    	 <table class="finhistory">
+	 	<tr><th>Meals with paperwork_done=NULL</th></tr>
+		{foreach item=pm from=$nopaperwork}
+		   <tr class="{cycle values="even,odd"}"><td><a href=coho_meals-view_entry.php?id={$pm.cal_meal_id}&mealdatetime={$pm.mealdatetime}>{$pm.mealtitle}</a><br>(on {$pm.mealdatetime|tiki_date_format:"%a, %b %e, %Y"})&nbsp;&nbsp;&nbsp; {button href="coho_meals-edit_meal_summary.php?id={$pm.cal_meal_id}&mealtype=regular&mealdatetime={$pm.mealdatetime}" _text="Start"}</td></tr>
+		{/foreach}
+	 </table>
+	 <table class="finhistory">
+		<tr><th><form action="coho_meals-user_info.php" method="post" class="form-horizontal">
+			Meals improperly charged from:<br> {html_select_date display_days=false prefix="finfilter_start_" time=$filterstart field_order=$prefs.display_field_order start_year=$prefs.calendar_start_year end_year=$prefs.calendar_end_year}
+			<input class="btn btn-default" type="submit" value="Change" />
+			</form>
+		</th></tr>
+		{foreach item=bc from=$badcharged}
+		    <tr class="{cycle values="even,odd"}"><td><a href=coho_meals-view_entry.php?id={$bc.cal_meal_id}&mealdatetime={$bc.mealdatetime}>{$bc.mealtitle}</a> (diff: {$bc.chargediff})<br>(on {$bc.mealdatetime|tiki_date_format:"%a, %b %e, %Y"}) &nbsp;&nbsp;&nbsp; {button href="coho_meals-charge_meal.php?id={$bc.cal_meal_id}" _text="Recharge"}</td></tr>
+		{/foreach}
+	 </table>
+    {/tab}
+{/if} {* end if user admin *}
 
 {/tabset}
