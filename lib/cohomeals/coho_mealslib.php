@@ -173,7 +173,7 @@ class CohoMealsLib extends TikiLib
           $mybuddy = false;
           if ( $this->is_meal_admin ) $mybuddy = true;
           else if ( !isset($this->loggedinuser) ) $mybuddy = false;
-          else $mybuddy = $this->is_signer( $cur_login, $this->loggedinuser );
+          else $mybuddy = $this->is_signer( $crew[$i]["username"], $this->loggedinuser );
           $crew[$i]["mybuddy"] = $mybuddy;
       }
       $i++;
