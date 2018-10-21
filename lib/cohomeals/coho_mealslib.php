@@ -289,7 +289,7 @@ class CohoMealsLib extends TikiLib
               "WHERE cal_id = $mealId AND (cal_type = 'M' OR cal_type = 'T')";
           $allrows = $this->fetchAll($query);
           foreach( $allrows as $row ) {
-              $multiplier = $this->get_multiplier( $row["cal_login"] );
+              $multiplier = $this->get_multiplier( $row["cal_login"], $this->get_mealdatetime($mealId) );
               $numdiners += $multiplier;
           }
           
@@ -352,7 +352,7 @@ class CohoMealsLib extends TikiLib
           if ( ($mealuser['user'] != 'admin') && ($mealuser['user'] != 'testassociatemember') && ($mealuser['user'] != 'testfriend') && ($mealuser['user'] != 'testrenter') ) {
               $realname = $this->get_user_preference($mealuser['user'], 'realName', $mealuser['user']);
               if ( $realname == "" ) $realname = $mealuser['user'];
-              $ret[] = array( "username"=>$mealuser['user'], "realName"=>$realname );
+              $ret[] = array( "username"=>$mealuser['user'], "realName"=>$realname, "multiplier"=>$this->get_multiplier($mealuser['user']) );
           }
       }
       return $ret;
@@ -399,12 +399,12 @@ class CohoMealsLib extends TikiLib
           foreach ($allrows as $buddy) {
               $realname = $this->get_user_preference($buddy["cal_signee"], 'realName', $buddy["cal_signee"]);
               if ( $realname == "" ) $realname = $buddy["cal_signee"];
-              $buddies[] = array( "username" => $buddy["cal_signee"], "realName" => $realname );
+              $buddies[] = array( "username" => $buddy["cal_signee"], "realName" => $realname, "multiplier" => $this->get_multiplier($buddy["cal_signee"]) );
           }          
           if ( $include_self == true ) {
               $realname = $this->get_user_preference($theuser, 'realName', $theuser);
               if ( $realname == "" ) $realname = $theuser;              
-              $buddies[] = array( "username" => $theuser, "realName" => $realname );
+              $buddies[] = array( "username" => $theuser, "realName" => $realname, "multiplier" => $this->get_multiplier($theuser) );
           }
       }
       return $buddies;
@@ -569,11 +569,11 @@ class CohoMealsLib extends TikiLib
 
 
   // used in meal view entry and edit_meal_summary
-  function load_meal_info($mealtype, $mealid, &$mealinfo)
+  function load_meal_info($mealtype, $mealId, &$mealinfo)
   {
       if ($mealtype == 'recurring') {
           $query = "SELECT signup_deadline, base_price, menu, meal_title";
-          $query .= " FROM cohomeals_meal_recurrence WHERE recurrenceId=" . $mealid;
+          $query .= " FROM cohomeals_meal_recurrence WHERE recurrenceId=" . $mealId;
           $res = $this->query($query);
           if ( $info = $res->fetchRow() ) {
               if ( $info["meal_title"] == "" ) $mealinfo["title"] = "Community meal";
@@ -591,7 +591,7 @@ class CohoMealsLib extends TikiLib
       
           $query = "SELECT cal_walkins, cal_signup_deadline, cal_date, cal_time, " .
               "cal_base_price, cal_max_diners, cal_menu, cal_notes, cal_cancelled, meal_title";
-          $query .= " FROM cohomeals_meal WHERE cal_id = " . $mealid;
+          $query .= " FROM cohomeals_meal WHERE cal_id = " . $mealId;
           $res = $this->query($query);
           if ( $info = $res->fetchRow() ) {
               if ( $info["meal_title"] == "" ) $mealinfo["title"] = "Community meal";
@@ -603,7 +603,7 @@ class CohoMealsLib extends TikiLib
               $mealinfo["notes"] = $info["cal_notes"];
               $mealinfo["max_diners"] = $info["cal_max_diners"];
               $mealinfo["cancelled"] = $info["cal_cancelled"];
-              $mealinfo["mealdatetime"] = $this->coho_datetime_to_unix( $info["cal_date"], $info["cal_time"] );
+              $mealinfo["mealdatetime"] = $this->get_mealdatetime($mealId);
           } else return false;
       }
       return true;
@@ -632,8 +632,13 @@ class CohoMealsLib extends TikiLib
   }
 
   // used in meal summary
-  function get_multiplier( $diner ) {
-      $multiplier = $this->get_user_preference( $diner, 'meal_multiplier', 1.0 );
+  function get_multiplier( $diner, $mealdate=NULL ) { // expects DateTime object
+      if ($mealdate == NULL) {
+          $mealdate = new DateTime(); // default to now
+      }
+      
+      $query = "SELECT multiplier FROM cohomeals_multiplier WHERE userId = '$diner' AND startdate <= " . $mealdate->format('Ymd') . " AND enddate >= " . $mealdate->format('Ymd');
+      if ( !($multiplier = $this->getOne( $query )) ) $multiplier = 1.0;
       if ( (!is_numeric($multiplier)) || ($multiplier<0) || ($multiplier>99) ) $multiplier = 1.0;
       return $multiplier;
   }
@@ -650,7 +655,7 @@ class CohoMealsLib extends TikiLib
   function person_cost( $mealId, $diner ) { // only non-recurring for now
       $mealinfo = array();
       $this->load_meal_info( "regular", $mealId, $mealinfo ); 
-      $cost = $mealinfo["base_price"] * $this->get_multiplier( $diner );
+      $cost = $mealinfo["base_price"] * $this->get_multiplier( $diner, $mealinfo["mealdatetime"] );
       $cost /= 100.00;
       return $cost;
   }
@@ -676,7 +681,7 @@ class CohoMealsLib extends TikiLib
                   if ( $billingGroup != $this->get_billingId( $diner["cal_login"] ) )
                       continue;
               } 
-              $income += ( $this->get_multiplier( $diner["cal_login"] ) * $base_price );
+              $income += floor( $this->get_multiplier( $diner["cal_login"], $this->get_mealdatetime( $mealId) ) * $base_price );
           }
           
           // guests
@@ -741,7 +746,7 @@ class CohoMealsLib extends TikiLib
           "WHERE cal_id = $mealId AND (cal_type = 'M' OR cal_type = 'T')";
       $allrows = $this->fetchAll($query);
       foreach( $allrows as $diner ) { 
-          $multiplier = $this->get_multiplier( $diner["cal_login"] );
+          $multiplier = $this->get_multiplier( $diner["cal_login"], $this->get_mealdatetime( $mealId ) );
           $tmpamount = -1*$multiplier * $base_price;
           $amount = floor($tmpamount);
           $bg = $this->get_billingId( $diner["cal_login"] );
@@ -950,15 +955,27 @@ class CohoMealsLib extends TikiLib
   // used in charge_meal
   // regular meals only  
   function get_mealdatetime( $mealId ) { 
+      $tmptz = TikiDate::TimezoneIsValidId($prefs['server_timezone']) ? $prefs['server_timezone'] : 'US/Pacific';
+      $tz = new DateTimeZone( $tmptz );
+      $mealdatetime = new DateTime( "now", $tz ); 
+      
       if ( !is_numeric( $mealId ) || $mealId <= 0 ) {
-          return false;
+          $mealdatetime->setTimestamp( 0 );
+          return $mealdatetime;
       }
+
       $mealinfo = array();
       $query = "SELECT cal_date, cal_time FROM cohomeals_meal WHERE cal_id = $mealId";
       $res = $this->query( $query );
-      if ( $info = $res->fetchRow() ) 
-          return $this->coho_datetime_to_unix( $info["cal_date"], $info["cal_time"] );
-      else return 0;
+      if ( $info = $res->fetchRow() ) {
+          $mealdatetime->setDate( substr($info["cal_date"],0,4), substr($info["cal_date"],4,2), substr($info["cal_date"],6,2) );
+          $tmptime = str_pad( $info["cal_time"], 6, "0", STR_PAD_LEFT );
+          $mealdatetime->setTime( substr($tmptime,0,2), substr($tmptime,2,2));
+          return $mealdatetime;
+      } else {
+          $mealdatetime->setTimestamp( 0 );
+          return $mealdatetime;
+      }
   }
 
   // used in viewing financial logs

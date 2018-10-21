@@ -40,8 +40,10 @@ $cohomeals->set_meal_admin( $is_meal_admin );
 $smarty->assign( 'is_meal_admin', $is_meal_admin );
 
 // read in post variables for filtering
-$filterstart = new DateTime();
-$filterend = new DateTime($today);
+$tmptz = TikiDate::TimezoneIsValidId($prefs['server_timezone']) ? $prefs['server_timezone'] : 'US/Pacific';
+$tz = new DateTimeZone( $tmptz );
+$filterstart = new DateTime( "now", $tz );
+$filterend = new DateTime("now", $tz);
 if ( isset($_REQUEST["finfilter_start_Month"]) ) {
     if ( isset($_REQUEST["finfilter_start_Day"]) ) {
         $filterstart->setDate( $_REQUEST["finfilter_start_Year"], $_REQUEST["finfilter_start_Month"], $_REQUEST["finfilter_start_Day"] );
@@ -58,8 +60,8 @@ if ( isset($_REQUEST["finfilter_start_Month"]) ) {
 } else {
     $filterstart->modify('-1 month');
 }
-$filterstart->modify('+6 hours'); // to avoid day changes due to timezones
-$filterend->modify('+6 hours');
+//$filterstart->modify('+6 hours'); // to avoid day changes due to timezones
+//$filterend->modify('+6 hours');
 $smarty->assign('filterstart', $filterstart->format('U') );
 $smarty->assign('filterend', $filterend->format('U') );
 $sortbymeal=false;
@@ -120,7 +122,7 @@ if ( $sortbymeal ) {
     foreach( $newrows as $row ) {
         $mealtitle = $cohomeals->get_mealtitle( $row["cal_meal_id"] );
         $mealdatetime = $cohomeals->get_mealdatetime( $row["cal_meal_id"] );
-        $finlog[] = array( "cal_timestamp"=>$row["cal_timestamp"], "cal_description"=>$row["cal_description"], "cal_meal_id"=>$row["cal_meal_id"], "mealtitle"=>$mealtitle, "mealdatetime"=>$mealdatetime, "cal_text"=>$row["cal_text"], "cal_amount"=>$row["cal_amount"], "cal_running_balance"=>$row["cal_running_balance"]);
+        $finlog[] = array( "cal_timestamp"=>$row["cal_timestamp"], "cal_description"=>$row["cal_description"], "cal_meal_id"=>$row["cal_meal_id"], "mealtitle"=>$mealtitle, "mealdatetime"=>$mealdatetime->format('U'), "cal_text"=>$row["cal_text"], "cal_amount"=>$row["cal_amount"], "cal_running_balance"=>$row["cal_running_balance"]);
     }
     $smarty->assign('adminfinlog', $adminfinlog);
     $smarty->assign('finlog', $finlog);
@@ -146,7 +148,7 @@ if ( $sortbymeal ) {
             $bgname = $cohomeals->get_billing_group_name( $bgid );
             $mealtitle = $cohomeals->get_mealtitle( $row["cal_meal_id"] );
             $mealdatetime = $cohomeals->get_mealdatetime( $row["cal_meal_id"] );
-            $adminfinlog[] = array( "cal_timestamp"=>$row["cal_timestamp"], "billingGroup"=>$bgname, "cal_description"=>$row["cal_description"], "cal_meal_id"=>$row["cal_meal_id"], "mealtitle"=>$mealtitle, "mealdatetime"=>$mealdatetime, "cal_text"=>$row["cal_text"], "cal_amount"=>$row["cal_amount"], "cal_running_balance"=>$row["cal_running_balance"]);
+            $adminfinlog[] = array( "cal_timestamp"=>$row["cal_timestamp"], "billingGroup"=>$bgname, "cal_description"=>$row["cal_description"], "cal_meal_id"=>$row["cal_meal_id"], "mealtitle"=>$mealtitle, "mealdatetime"=>$mealdatetime->format('U'), "cal_text"=>$row["cal_text"], "cal_amount"=>$row["cal_amount"], "cal_running_balance"=>$row["cal_running_balance"]);
         }
         $smarty->assign('adminfinlog', $adminfinlog);
         
@@ -162,7 +164,7 @@ if ( $sortbymeal ) {
     foreach( $newrows as $row ) {
         $mealtitle = $cohomeals->get_mealtitle( $row["cal_meal_id"] );
         $mealdatetime = $cohomeals->get_mealdatetime( $row["cal_meal_id"] );
-        $finlog[] = array( "cal_timestamp"=>$row["cal_timestamp"], "cal_description"=>$row["cal_description"], "cal_meal_id"=>$row["cal_meal_id"], "mealtitle"=>$mealtitle, "mealdatetime"=>$mealdatetime, "cal_text"=>$row["cal_text"], "cal_amount"=>$row["cal_amount"], "cal_running_balance"=>$row["cal_running_balance"]);
+        $finlog[] = array( "cal_timestamp"=>$row["cal_timestamp"], "cal_description"=>$row["cal_description"], "cal_meal_id"=>$row["cal_meal_id"], "mealtitle"=>$mealtitle, "mealdatetime"=>($mealdatetime->format('U')), "cal_text"=>$row["cal_text"], "cal_amount"=>$row["cal_amount"], "cal_running_balance"=>$row["cal_running_balance"]);
     }
     $smarty->assign('adminfinlog', $adminfinlog);
     $smarty->assign('finlog', $finlog);
@@ -186,12 +188,26 @@ if ( $sortbymeal ) {
             $bgname = $cohomeals->get_billing_group_name( $bgid );
             $mealtitle = $cohomeals->get_mealtitle( $row["cal_meal_id"] );
             $mealdatetime = $cohomeals->get_mealdatetime( $row["cal_meal_id"] );
-            $adminfinlog[] = array( "cal_timestamp"=>$row["cal_timestamp"], "billingGroup"=>$bgname, "cal_description"=>$row["cal_description"], "cal_meal_id"=>$row["cal_meal_id"], "mealtitle"=>$mealtitle, "mealdatetime"=>$mealdatetime, "cal_text"=>$row["cal_text"], "cal_amount"=>$row["cal_amount"], "cal_running_balance"=>$row["cal_running_balance"]);
+            $adminfinlog[] = array( "cal_timestamp"=>$row["cal_timestamp"], "billingGroup"=>$bgname, "cal_description"=>$row["cal_description"], "cal_meal_id"=>$row["cal_meal_id"], "mealtitle"=>$mealtitle, "mealdatetime"=>$mealdatetime->format('U'), "cal_text"=>$row["cal_text"], "cal_amount"=>$row["cal_amount"], "cal_running_balance"=>$row["cal_running_balance"]);
         }
         $smarty->assign('adminfinlog', $adminfinlog);
     }
 }
 
+
+
+/////////////////////////////////
+// other non-admin tabs
+
+/////////// buddies (include self so can see own multiplier)
+$buddies = $cohomeals->load_buddies_signees( $user, $is_meal_admin, true ); // true for include self
+$smarty->assign('buddies', $buddies);
+
+
+
+
+
+/////////////////////////////////
 // other admin tabs
 if ( $is_meal_admin ) {
 
@@ -203,7 +219,7 @@ if ( $is_meal_admin ) {
         $mealdatetime = $cohomeals->get_mealdatetime( $row["cal_id"] );
         if ( $row["meal_title"] == "" ) $title = "Community Meal";
         else $title = $row["meal_title"];
-        $uncharged[] = array( "cal_meal_id"=>$row["cal_id"],"mealdatetime"=>$mealdatetime,"mealtitle"=>$title );
+        $uncharged[] = array( "cal_meal_id"=>$row["cal_id"],"mealdatetime"=>$mealdatetime->format('U'),"mealtitle"=>$title );
     } 
     $smarty->assign('uncharged', $uncharged);
 
@@ -215,7 +231,7 @@ if ( $is_meal_admin ) {
         $mealdatetime = $cohomeals->get_mealdatetime( $row["cal_id"] );
         if ( $row["meal_title"] == "" ) $title = "Community Meal";
         else $title = $row["meal_title"];
-        $nopaperwork[] = array( "cal_meal_id"=>$row["cal_id"],"mealdatetime"=>$mealdatetime,"mealtitle"=>$title );
+        $nopaperwork[] = array( "cal_meal_id"=>$row["cal_id"],"mealdatetime"=>$mealdatetime->format('U'),"mealtitle"=>$title );
     } 
     $smarty->assign('nopaperwork', $nopaperwork);
 
@@ -238,7 +254,7 @@ if ( $is_meal_admin ) {
         $actual_charges = -1*$cohomeals->diner_income( $row["cal_id"], true );
         if ( $expected_charges != $actual_charges ) {
             $diff = $expected_charges - $actual_charges;
-            $badcharged[] = array( "cal_meal_id"=>$row["cal_id"],"mealdatetime"=>$mealdatetime,"mealtitle"=>$title,"chargediff"=>$diff);
+            $badcharged[] = array( "cal_meal_id"=>$row["cal_id"],"mealdatetime"=>$mealdatetime->format('U'),"mealtitle"=>$title,"chargediff"=>$diff);
         }
     }
     $smarty->assign('badcharged',$badcharged);

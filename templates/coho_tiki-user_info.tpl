@@ -36,7 +36,10 @@ There is nothing to see here
 {/tab}
 
 {tab name="Buddies"}
-There is nothing to see here
+<b>Your buddies:</b><br>
+     {foreach item=buddy from=$buddies}
+     {$buddy.realName} (multiplier: {$buddy.multiplier})<br>
+     {/foreach}
 {/tab}
 
 {tab name="Recurring participation"}

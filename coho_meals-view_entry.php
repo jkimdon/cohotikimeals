@@ -80,7 +80,7 @@ $smarty->assign('mealcancelled', $meal["cancelled"]);
 $tmpsignupdatetime = strtotime("-".$meal["signup_deadline"]." days",$mealdatetime);
 $deadline = new DateTime();
 $deadline->setTimestamp( $tmpsignupdatetime );
-$tz = TikiDate::TimezoneIsValidId($prefs['server_timezone']) ? $prefs['server_timezone'] : 'PST';
+$tz = TikiDate::TimezoneIsValidId($prefs['server_timezone']) ? $prefs['server_timezone'] : 'US/Pacific';
 $deadline->setTimezone( new DateTimeZone( $tz ) );
 $deadline->setTime( 23, 59 );
 $signupdatetime = $deadline->format('U');

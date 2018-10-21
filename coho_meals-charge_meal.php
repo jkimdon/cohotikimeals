@@ -38,7 +38,7 @@ $cohomeals->set_meal_admin( $is_meal_admin );
 $mealdatetime = $cohomeals->get_mealdatetime( $mealId );
 $cohomeals->charge_for_meal( $mealId, true );
 
-$nexturl = "coho_meals-view_entry.php?id=" . $mealId . "&mealdatetime=" . $mealdatetime;
+$nexturl = "coho_meals-view_entry.php?id=" . $mealId . "&mealdatetime=" . $mealdatetime->format('U');
 header("Location: $nexturl");
 die;
 

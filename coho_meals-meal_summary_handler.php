@@ -60,7 +60,7 @@ $numwalkins = 0;
 // enter and charge the walkins
 if ( isset($_REQUEST["walkin"] ) ) {
     foreach( $walkin as $wi ) {
-        $multiplier = $cohomeals->get_multiplier( $wi );
+        $multiplier = $cohomeals->get_multiplier( $wi, $mealdatetime );
         $amount = -1 * $base_price * $multiplier;
         $fullname = $cohomeals->get_fullname( $wi );
         $description = $fullname . " dining (multiplier " . $multiplier . ")";

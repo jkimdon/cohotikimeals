@@ -30,6 +30,7 @@ $smarty->assign( 'mealId', $mealId );
 $mealinfo = array();
 $cohomeals->load_meal_info( "regular", $mealId, $mealinfo );
 $smarty->assign( 'meal', $mealinfo );
+$smarty->assign( 'mealdatetime', $mealinfo["mealdatetime"]->format('U') );
 
 $paperwork_done = $cohomeals->paperwork_done( $mealId );
 $smarty->assign( 'paperwork_done', $paperwork_done );
@@ -53,7 +54,7 @@ if ( !$paperwork_done ) { // getting values from the form not the database
         if ( $walkin != '' ) {
             $walkin_income += $cohomeals->person_cost( $mealId, $walkin );
             $numwalkins++;
-            $weighted_diners += $cohomeals->get_multiplier( $walkin );
+            $weighted_diners += $cohomeals->get_multiplier( $walkin, $mealinfo['mealdatetime'] );
         }
     } 
     // walkin guests
