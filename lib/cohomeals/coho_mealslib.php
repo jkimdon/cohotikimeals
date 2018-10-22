@@ -16,10 +16,16 @@ class CohoMealsLib extends TikiLib
 {
     protected $loggedinuser = "";
     protected $is_meal_admin = false;
+    protected $is_meal_finance_admin = false;
 
     function set_meal_admin( $amI ) {
         if ( $amI == true ) $this->is_meal_admin = true;
         else $this->is_meal_admin = false;
+    }
+
+    function set_meal_finance_admin( $amI ) {
+        if ( $amI == true ) $this->is_meal_finance_admin = true;
+        else $this->is_meal_finance_admin = false;
     }
 
     function set_user( $usertoset="" ) {
@@ -818,11 +824,16 @@ class CohoMealsLib extends TikiLib
   // used by charge_person, charge_for_meal (also expect to use in refund and credit functions)
   //
   // WARNING: does not check for anything except running balance. other checking should be done before calling this.
-  function enter_finlog( $billingGroup, $amt, $description, $mealId, $userId ) {
+  function enter_finlog( $billingGroup, $amt, $description, $mealId, $userId='', $notes='' ) {
 
       if ( ($billingGroup <= 0) || (!is_numeric($billingGroup)) )
           $billingGroup = $this->get_billingId( $userId ); 
       if ( ($billingGroup == false) || (!is_numeric($billingGroup)) || ($billingGroup <=0) ) {
+          if ( $userId == '' ) {
+              $smarty->assign('msg', 'Missing userId and billing group in enter_finlog.');
+              $smarty->display("error.tpl");
+              die;
+          }
           $billingGroup = $this->make_new_billingGroup( $userId );
       }
 
@@ -840,9 +851,6 @@ class CohoMealsLib extends TikiLib
           $balance += $row['cal_amount'];
           $last_balance = $row['cal_running_balance'];
           $last_time = $row['cal_timestamp'];
-          if ( $row['cal_meal_id'] == $mealId ) {
-              $mealamount += $row['cal_amount'];
-          }
       }
 
       if ( $last_balance != $balance ) {
@@ -858,12 +866,18 @@ class CohoMealsLib extends TikiLib
           $sql = "SELECT MAX(cal_log_id) FROM cohomeals_financial_log";
           $maxid = $this->getOne( $sql );
           $id = $maxid + 1;
+          $balance += $amount;
+          if ( $notes != '' ) {
+              $lastterm = "cal_running_balance, cal_text ) ";
+              $lastval = $balance . ", '" . $notes . "' )";
+          } else {
+              $lastterm = "cal_running_balance ) ";
+              $lastval = $balance . " )";
+          }
           $sql = "INSERT INTO cohomeals_financial_log " .
               "( cal_log_id, cal_login, cal_billing_group, cal_description, " .
-              "cal_meal_id, cal_amount, cal_running_balance ) " . 
-              "VALUES ( $id, '$userId', $billingGroup, '$description', $mealId, $amount, ";
-          $balance += $amount;
-          $sql .= $balance . ")";
+              "cal_meal_id, cal_amount, " . $lastterm . 
+              "VALUES ( $id, '$userId', $billingGroup, '$description', $mealId, $amount, " . $lastval;
           $this->query( $sql );
       }
       return true;
@@ -1111,14 +1125,36 @@ class CohoMealsLib extends TikiLib
 
   // used in admin financial view in coho_meals-user_info.php
   function get_billingGroups( &$billingArray ) {
-      if ( !$this->is_meal_admin ) return NULL;
+      $myusers = new UsersLib;
+      $groupnames = array();
+      $groupnames[0] = "CoHo owners";
+      $groupnames[1] = "on-site renters";
+      $groupnames[2] = "Official Friend (active)";
+      $groupnames[3] = "Associate Member (active)";
+      
       $billingArray[0] = 'All';
       $query = "SELECT billingGroupId, billingGroupName FROM cohomeals_billing_groups ORDER BY billingGroupName";
       $allrows = $this->fetchAll($query);
       foreach ( $allrows as $row ) {
           $id = $row['billingGroupId'];
-          $billingArray[$id] = $row['billingGroupName'];
+
+          // only list people who are active in the meal program
+          //    (owners, renters, active friends, active associate members)
+          // so for each billing group, find somebody who is part of that group and check to see
+          //    if they are in one of the approved groups
+//          $sql = "SELECT user FROM tiki_user_preferences WHERE prefName = 'billingGroup' AND value = $id LIMIT 1";
+          $sql = "SELECT user FROM tiki_user_preferences WHERE prefName = 'billingGroup' AND value = $id";
+          $bguser = $this->getOne( $sql );
+          $activeuser = false;
+          foreach ( $groupnames as $group ) {
+              if ( $myusers->user_is_in_group( $bguser, $group ) ) {
+                  $activeuser = true;
+                  continue;
+              }
+          }
+          if ( $activeuser == true ) $billingArray[$id] = $row['billingGroupName'];
       }
+
       return true;
   }
   

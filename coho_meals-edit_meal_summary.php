@@ -131,6 +131,7 @@ if ( $mealtype == "regular" ) {
         $mealinfo = array();
         $cohomeals->load_meal_info( "regular", $mealId, $mealinfo );
         $smarty->assign( 'meal', $mealinfo );
+        $smarty->assign( 'mealdatetime', $mealinfo["mealdatetime"]->format('U') );
 
         if (isset($_REQUEST["walkin"])) $walkins = $_REQUEST["walkin"]; 
         else $walkins = [];

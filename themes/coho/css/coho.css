@@ -8695,6 +8695,9 @@ footer.footer {
     text-align: left;
     border: 1px solid #000000;
 }
-
+hr.finhistory {
+    border-top: 1px solid #da388f;
+    width: 100%;
+}
 
 /*** end meal financial history **/

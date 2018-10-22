@@ -33,11 +33,15 @@ if ($userwatch != $user) {
 
 $mealperms = Perms::get(array( 'type' => 'meals' ));
 $is_meal_admin = $mealperms->admin_meals;
+$is_finance_admin = $mealperms->finance_meals;
+if ($is_meal_admin) $is_finance_admin = true;
 
 $cohomeals = new CohoMealsLib;
 $cohomeals->set_user( $user );
 $cohomeals->set_meal_admin( $is_meal_admin );
 $smarty->assign( 'is_meal_admin', $is_meal_admin );
+$cohomeals->set_meal_finance_admin( $is_finance_admin );
+$smarty->assign( 'is_finance_admin', $is_finance_admin );
 
 // read in post variables for filtering
 $tmptz = TikiDate::TimezoneIsValidId($prefs['server_timezone']) ? $prefs['server_timezone'] : 'US/Pacific';
@@ -69,6 +73,10 @@ if (isset($_REQUEST["sortbymeal"]) ) {
     $sortbymeal=$_REQUEST["sortbymeal"];
 }
 $smarty->assign('sortbymeal', $sortbymeal);
+
+$creditsonly = false;
+if (isset($_REQUEST["filter_creditsonly"]) ) $creditsonly = $_REQUEST["filter_creditsonly"];
+$smarty->assign('creditsonly', $creditsonly);
 
 // find the billing group
 $billingId = $cohomeals->get_billingId( $user );
@@ -128,7 +136,7 @@ if ( $sortbymeal ) {
     $smarty->assign('finlog', $finlog);
     
     // admin financial tab
-    if ( $is_meal_admin ) {
+    if ( $is_meal_admin || $is_finance_admin) {
 
         $whereclause = "WHERE ";
         if ($BGterms != "") {
@@ -157,6 +165,7 @@ if ( $sortbymeal ) {
 
     // individual log tab
     $whereclause = $billing_sql;
+    if ( $creditsonly == true ) $whereclause .= " AND cal_amount > 0";
     $whereclase .= " AND (cal_timestamp <= FROM_UNIXTIME(" . $filterend->format('U') . ")) AND (cal_timestamp >= FROM_UNIXTIME(" . $filterstart->format('U') . ")) ";
     $query2 = "SELECT cal_login, cal_description, cal_meal_id, cal_amount, cal_running_balance, cal_text, cal_timestamp FROM cohomeals_financial_log " . $whereclause . " ORDER BY cal_timestamp DESC LIMIT 100"; 
     $newrows = $cohomeals->fetchAll($query2);
@@ -170,13 +179,14 @@ if ( $sortbymeal ) {
     $smarty->assign('finlog', $finlog);
 
     // admin log tab
-    if ( $is_meal_admin) {
+    if ( $is_meal_admin || $is_finance_admin ) {
         $whereclause = " WHERE (cal_timestamp <= FROM_UNIXTIME(" . $filterend->format('U') . ")) AND (cal_timestamp >= FROM_UNIXTIME(" . $filterstart->format('U') . ")) ";
+        if ( $creditsonly == true ) $whereclause .= " AND cal_amount > 0";
         if ( $BGterms != "" ) $whereclause .= " AND " . $BGterms;
         
         $sql = "SELECT cal_login, cal_description, cal_meal_id, cal_amount, cal_running_balance, " .
             "cal_text, cal_timestamp, cal_billing_group " .
-            "FROM cohomeals_financial_log " . $whereclause . "ORDER BY cal_timestamp DESC, cal_billing_group LIMIT 100";
+            "FROM cohomeals_financial_log " . $whereclause . " ORDER BY cal_timestamp DESC, cal_billing_group LIMIT 100";
         $allrows = $cohomeals->fetchAll($sql);
         $adminfinlog = array();
         foreach( $allrows as $row ) {
@@ -209,8 +219,29 @@ $smarty->assign('buddies', $buddies);
 
 /////////////////////////////////
 // other admin tabs
-if ( $is_meal_admin ) {
+if ( $is_meal_admin || $is_finance_admin ) {
 
+    // for treasurer tab: delinquent accounts
+    $delinquencies = array();
+    foreach ( $billingArray as $key=>$value ) {
+    
+        $balance = -1000000; // something absurd so errors are obvious
+    
+        $sql = "SELECT MAX(cal_log_id) FROM cohomeals_financial_log WHERE cal_billing_group = $key";
+        $last_log = $cohomeals->getOne( $sql );
+        if ( !$last_log ) $balance = 0;
+        else {
+            $query2 = "SELECT cal_running_balance FROM cohomeals_financial_log " .
+                "WHERE cal_billing_group = $key AND cal_log_id = $last_log";
+            $balance = $cohomeals->getOne( $query2 );
+        }
+        if ($balance < 0) {
+            $formatted_balance = "$" . $balance/100;
+            $delinquencies[] = array( "billingGroup"=>$value, "balance"=>$formatted_balance );
+        }
+    }
+    $smarty->assign( 'delinquencies', $delinquencies );
+    
     // admin list of meals not charged 
     $query = "SELECT cal_id, meal_title FROM cohomeals_meal WHERE cal_cancelled=0 AND diners_charged IS NULL";
     $newrows = $cohomeals->fetchAll($query);
@@ -258,6 +289,22 @@ if ( $is_meal_admin ) {
         }
     }
     $smarty->assign('badcharged',$badcharged);
+
+    // list of people with their billing group
+    // (for finding inactive people and incorrect or missing billing groups)
+    $allusers = $cohomeals->getAllMealUsers();
+    $people_billing = array();
+    foreach ( $allusers as $oneuser ) {
+        $bgid = $cohomeals->get_billingId( $oneuser["username"] );
+        if ( ($bgid <= 0) || (!is_numeric($bgid)) ) $bgid = 0;
+        $people_billing[$bgid] .= $oneuser["realName"] . " ";
+    }
+    $grouped = array();
+    foreach ( $billingArray as $key=>$value ) {
+        $groupname = $value . "(" . $key . ")";
+        $grouped[$key] = array("billingGroup"=>$groupname, "names"=>$people_billing[$key]);
+    }
+    $smarty->assign('people_billingGroups', $grouped);
 }
 
 

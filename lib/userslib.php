@@ -4839,6 +4839,15 @@ class UsersLib extends TikiLib
 				'scope' => 'global',
 			],
 			[
+				'name' => 'tiki_p_finance_meals',
+				'description' => tra('Meal software finance admin'),
+				'level' => 'registered',
+				'type' => 'meals',
+				'admin' => false,
+				'prefs' => array('feature_cohomeals'),
+				'scope' => 'global',
+			],
+			[
 				'name' => 'tiki_p_broadcast_all',
 				'description' => tra('Can broadcast messages to all users'),
 				'level' => 'admin',

@@ -1,5 +1,5 @@
-<a href="coho_meals-view_entry.php?id={$mealId}&mealdatetime={$meal.mealdatetime}">
-<h1>Edit Meal Report for {$meal.title} on {$meal.mealdatetime|tiki_date_format:"%a, %b %e, %Y"} at {$meal.mealdatetime|tiki_date_format:"%a, %b %e"}</h1>
+<a href="coho_meals-view_entry.php?id={$mealId}&mealdatetime={$mealdatetime}">
+<h1>Edit Meal Report for {$meal.title} on {$mealdatetime|tiki_date_format:"%a, %b %e, %Y"} at {$mealdatetime|tiki_date_format:"%I:%M %p"}</h1>
 </a>
 {if $allowed_to_edit eq false}
     Please get the head chef to do the meal summary.
