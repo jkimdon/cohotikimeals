@@ -208,11 +208,13 @@
 <p>When your meal is complete, please complete the online summary then submit your receipts and reimbursement form to Valerie (in her CH cubby or in the purple box on her porch).</p>
 
 {if $paperwork_done} 
-  <p>Online summary for this meal has been completed. Click {button href="coho_meals-display_meal_summary.php?id={$mealId}" _text="here to view"}</p>
-{else}<p>{button href="coho_meals-edit_meal_summary.php?id={$mealId}&mealtype={$mealtype}&mealdatetime={$mealdatetime}" _text="Click here to begin the meal summary."}</p>
+  <p>Online summary for this meal has been completed. {button href="coho_meals-display_meal_summary.php?id={$mealId}" _text="Click here to view"}</p>
+{else}
+  <p>{button href="coho_meals-edit_meal_summary.php?id={$mealId}&mealtype={$mealtype}&mealdatetime={$mealdatetime}" _text="Click here to begin the meal summary."}</p>
+  {button href="coho_meals-edit_meal.php?id={$mealId}&mealtype={$mealtype}&mealdatetime={$mealdatetime}" _text="Click here to edit the meal."}</p>
 {/if}
 
-{button href="coho_meals-edit_meal.php?id={$mealId}&mealtype={$mealtype}&mealdatetime={$mealdatetime}" _text="Click here to edit the meal."}</p>
+
 
 {***********************************************************}
 
