@@ -6,7 +6,7 @@ include_once ('lib/calendar/calendarlib.php');
 include_once ('lib/cohomeals/coho_mealslib.php');
 $access->check_feature('feature_cohomeals');
 
-$access->check_permission('tiki_p_finance_meals'); //fixme: get more appropriate permissions
+$access->check_permission('tiki_p_finance_meals'); 
 
 $mealperms = Perms::get(array( 'type' => 'meals' ));
 $is_meal_admin = $mealperms->admin_meals;

@@ -72,11 +72,9 @@ if ( !$cohomeals->load_meal_info($mealtype, $mealId, $meal) ) {
     die;
 }
 
-$smarty->assign('mealmenu', $meal["menu"]);
-$smarty->assign('mealnotes', $meal["notes"]);
+$smarty->assign('meal', $meal);
 
 $smarty->assign('mealdatetime', $mealdatetime );
-$smarty->assign('mealcancelled', $meal["cancelled"]);
 $tmpsignupdatetime = strtotime("-".$meal["signup_deadline"]." days",$mealdatetime);
 $deadline = new DateTime();
 $deadline->setTimestamp( $tmpsignupdatetime );

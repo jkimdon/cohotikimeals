@@ -70,8 +70,8 @@
 	      <option value="{$shopperoption.username}" {if $shopperoption.username eq $confirmshopper.username}selected="selected"{/if}>{$shopperoption.realName} </option>
 	   {/foreach}
         </select></td>
-      <td>$<input type="text" name="dollars[]" size="3" value="{$confirmshopper.dollars}"/></td>
-      <td>.<input type="text" name="cents[]" size="2" value="{$confirmshopper.cents}"/></td>
+      <td>$<input type="text" name="dollars[]" size="3" maxlength="3" value="{$confirmshopper.dollars}"/></td>
+      <td>.<input type="text" name="cents[]" size="2" maxlength="2" value="{$confirmshopper.cents}"/></td>
       <td><input type="text" name="vendor[]" size="15" maxlength="50" value="{$confirmshopper.vendor}"/></td>
   </tr>
 {/foreach}

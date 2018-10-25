@@ -550,7 +550,21 @@ class CohoMealsLib extends TikiLib
     return $newdate;
   }
 
+  function is_working( $mealId, $user_login ) {
+      $working = false;
 
+      if ($mealId != 0) {
+          $sql = "SELECT cal_type " .
+              "FROM cohomeals_meal_participant" . 
+              " WHERE cal_id = $mealId AND cal_login = '$username'" .
+              " AND (cal_type = 'H' OR cal_type = 'C')";
+          if ( $this->getOne( $sql ) ) $working = true;
+      }
+      return $working;
+  }
+  
+
+  // defunct
   function get_eat_work_status($mealid, $user_login) 
   {
     $query = "SELECT `cal_type` FROM `coho_meals_meal_participant` " .

@@ -1,7 +1,7 @@
-{title admpage="cohomeals"}{tr}Meal details for {$mealdatetime|tiki_date_format:"%a, %b %e, %Y"}{/tr}{/title}
+{title admpage="cohomeals"}{tr}Meal details for {$meal.title} on {$mealdatetime|tiki_date_format:"%a, %b %e, %Y"}{/tr}{/title}
 
        <div class="wikitext">
-         {if $mealcancelled neq '0'}
+         {if $meal.cancelled neq '0'}
 	   <h2>***** This meal has been <font color="#DD0000">cancelled</font> *****</h2>
 	 {else}
 
@@ -25,12 +25,17 @@
 		<td>{$mealdatetime|tiki_date_format:"%I:%M %p"}</td>
 	 </tr>
          <tr><th>Menu:</th>
-		<td>{$mealmenu}</td>
+		<td><textarea style="border: none;" readonly>{$meal.menu}</textarea></td>
 	 </tr>
          <tr><th>Notes:</th>
-		<td>{$mealnotes}</td>
+		<td><textarea style="border: none;" readonly>{$meal.notes}</textarea></td>
 	 </tr>
-         <tr><th>Head chef:</th>
+   	 {if {$mealtype} eq "regular"}
+     	    <tr><th>Total diners:</th>
+       	        <td>{$numdiners} diners, weighted equivalent of {$wtddiners} diners ({$income|string_format:"\$%.2f"} income)</td>
+            </tr>
+   	 {/if}
+	 <tr><th>Head chef:</th>
 	     {if $has_head_chef eq '1'}<td>{$mealheadchef.realName}
 	     	 {if ($can_signup eq true) and ($headchefbuddy eq true)} &nbsp;&nbsp;&nbsp; {button href="coho_meals-edit_participation_handler.php?people={$mealheadchef.username}&id={$mealId}&type=H&action=D&olduser={$mealheadchef.username}&mealtype={$mealtype}&mealdatetime={$mealdatetime}" _text="Remove"} {/if}</td>
 	     {else}{if $can_signup eq true}
@@ -173,11 +178,6 @@
 	 {$end_common_foods=5} {* we have 4 "common" food restrictions *}
 	 {$food_count=0}
    </tr>
-   {if {$mealtype} eq "regular"}
-     <tr><th>Total diners</th>
-       <td>{$numdiners} diners, weighted equivalent of {$wtddiners} diners ({$income|string_format:"\$%.2f"} income)</td>
-     </tr>
-   {/if}
    <tr><th>Food restrictions</th>
 	 <td>
 	 <table>
@@ -209,10 +209,10 @@
 
 {if $paperwork_done} 
   <p>Online summary for this meal has been completed. Click {button href="coho_meals-display_meal_summary.php?id={$mealId}" _text="here to view"}</p>
-{else}<p>Click {button href="coho_meals-edit_meal_summary.php?id={$mealId}&mealtype={$mealtype}&mealdatetime={$mealdatetime}" _text="here to begin the process."}</p>
+{else}<p>{button href="coho_meals-edit_meal_summary.php?id={$mealId}&mealtype={$mealtype}&mealdatetime={$mealdatetime}" _text="Click here to begin the meal summary."}</p>
 {/if}
 
-Click here to edit the meal.
+{button href="coho_meals-edit_meal.php?id={$mealId}&mealtype={$mealtype}&mealdatetime={$mealdatetime}" _text="Click here to edit the meal."}</p>
 
 {***********************************************************}
 
