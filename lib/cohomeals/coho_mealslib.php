@@ -556,7 +556,7 @@ class CohoMealsLib extends TikiLib
       if ($mealId != 0) {
           $sql = "SELECT cal_type " .
               "FROM cohomeals_meal_participant" . 
-              " WHERE cal_id = $mealId AND cal_login = '$username'" .
+              " WHERE cal_id = $mealId AND cal_login = '$user_login'" .
               " AND (cal_type = 'H' OR cal_type = 'C')";
           if ( $this->getOne( $sql ) ) $working = true;
       }

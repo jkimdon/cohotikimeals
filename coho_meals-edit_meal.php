@@ -42,7 +42,7 @@ if ( $mealtype == "recurring" ) {
 }
 
 
-if ( $cohomeals->is_working( $user ) || $is_meal_admin ) {
+if ( $cohomeals->is_working( $mealId, $user ) || $is_meal_admin ) {
 
     $smarty->assign('allowed_to_edit', true);
     
