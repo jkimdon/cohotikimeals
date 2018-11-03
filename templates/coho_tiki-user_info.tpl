@@ -27,7 +27,7 @@
      <table class="finhistory">
      <tr><th>Transaction date</th><th>Description</th><th>Associated meal</th><th>Notes</th><th>Amount</th><th>Running balance</th></tr>
      {foreach item=logline from=$finlog}
-        <tr class="{cycle values="even,odd"}"><td>{$logline.cal_timestamp}</td><td>{$logline.cal_description}</td><td><a href=coho_meals-view_entry.php?id={$logline.cal_meal_id}&mealdatetime={$logline.mealdatetime}>{$logline.mealtitle}</a><br>(on {$logline.mealdatetime|tiki_date_format:"%a, %b %e, %Y"})</td><td>{$logline.cal_text}</td><td>{($logline.cal_amount/100)|string_format:"\$%.2f"}</td><td>{($logline.cal_running_balance/100)|string_format:"\$%.2f"}</tr>
+        <tr class="{cycle values="even,odd"}"><td>{$logline.cal_timestamp}</td><td>{$logline.cal_description}</td><td>{if $logline.cal_meal_id neq 0}<a href=coho_meals-view_entry.php?id={$logline.cal_meal_id}&mealdatetime={$logline.mealdatetime}>{$logline.mealtitle}</a><br>(on {$logline.mealdatetime|tiki_date_format:"%a, %b %e, %Y"}){/if}</td><td>{$logline.cal_text}</td><td>{($logline.cal_amount/100)|string_format:"\$%.2f"}</td><td>{($logline.cal_running_balance/100)|string_format:"\$%.2f"}</tr>
      {/foreach}
      </table>     
 {/tab}
@@ -66,7 +66,7 @@ There is nothing to see here
      	 <table class="finhistory">
      	    <tr><th>Transaction date</th><th>Billing group</th><th>Description</th><th style="width:200px">Associated meal</th><th>Notes</th><th>Amount</th><th>Running balance</th></tr>
      	    {foreach item=logline from=$adminfinlog}
-               <tr class="{cycle values="even,odd"}"><td>{$logline.cal_timestamp}</td><td>{$logline.billingGroup}</td><td>{$logline.cal_description}</td><td><a href=coho_meals-view_entry.php?id={$logline.cal_meal_id}&mealdatetime={$logline.mealdatetime}>{$logline.mealtitle}</a><br>(on {$logline.mealdatetime|tiki_date_format:"%a, %b %e, %Y"})</td><td>{$logline.cal_text}</td><td>{($logline.cal_amount/100)|string_format:"\$%.2f"}</td><td>{($logline.cal_running_balance/100)|string_format:"\$%.2f"}</tr>
+               <tr class="{cycle values="even,odd"}"><td>{$logline.cal_timestamp}</td><td>{$logline.billingGroup}</td><td>{$logline.cal_description}</td><td>{if $logline.cal_meal_id neq 0}<a href=coho_meals-view_entry.php?id={$logline.cal_meal_id}&mealdatetime={$logline.mealdatetime}>{$logline.mealtitle}</a><br>(on {$logline.mealdatetime|tiki_date_format:"%a, %b %e, %Y"}){/if}</td><td>{$logline.cal_text}</td><td>{($logline.cal_amount/100)|string_format:"\$%.2f"}</td><td>{($logline.cal_running_balance/100)|string_format:"\$%.2f"}</tr>
      	    {/foreach}
      </table>     
 
