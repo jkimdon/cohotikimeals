@@ -8694,6 +8694,8 @@ footer.footer {
     padding: 5px 10px;
     text-align: left;
     border: 1px solid #000000;
+    white-space:pre-wrap;
+    word-wrap:break-word;
 }
 hr.finhistory {
     border-top: 1px solid #da388f;

@@ -25,10 +25,10 @@
 		<td>{$mealdatetime|tiki_date_format:"%I:%M %p"}</td>
 	 </tr>
          <tr><th>Menu:</th>
-		<td><textarea style="border: none;" readonly>{$meal.menu}</textarea></td>
+		<td>{$meal.menu}</td>
 	 </tr>
          <tr><th>Notes:</th>
-		<td><textarea style="border: none;" readonly>{$meal.notes}</textarea></td>
+		<td>{$meal.notes}</td>
 	 </tr>
    	 {if {$mealtype} eq "regular"}
      	    <tr><th>Total diners:</th>
