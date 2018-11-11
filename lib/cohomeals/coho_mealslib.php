@@ -823,8 +823,10 @@ class CohoMealsLib extends TikiLib
 
       $amount = floor($amt);
       // previous charges should have full name in log description
-      $query = "SELECT cal_amount FROM cohomeals_financial_log WHERE cal_meal_id = $mealId AND cal_billing_group = $billingGroup AND cal_description LIKE '%" . $fullname . "%'"; 
-      $allwithlogin = $this->fetchAll($query);
+      $logtable = $this->table( 'cohomeals_financial_log' );
+      $conditions = ['cal_meal_id'=>$mealId, 'cal_billing_group'=>$billingGroup];
+      $conditions['cal_description'] = $logtable->like('%' . $fullname . '%');
+      $allwithlogin = $logtable->fetchAll( ['cal_amount'], $conditions );
       $precharged = 0;
       foreach( $allwithlogin as $preamt ) {
           $precharged += $preamt["cal_amount"];
@@ -877,22 +879,11 @@ class CohoMealsLib extends TikiLib
 
       // enter the log
       if ( $amount != 0 ) { // insert the charge
-          $sql = "SELECT MAX(cal_log_id) FROM cohomeals_financial_log";
-          $maxid = $this->getOne( $sql );
-          $id = $maxid + 1;
           $balance += $amount;
-          if ( $notes != '' ) {
-              $lastterm = "cal_running_balance, cal_text ) ";
-              $lastval = $balance . ", '" . $notes . "' )";
-          } else {
-              $lastterm = "cal_running_balance ) ";
-              $lastval = $balance . " )";
-          }
-          $sql = "INSERT INTO cohomeals_financial_log " .
-              "( cal_log_id, cal_login, cal_billing_group, cal_description, " .
-              "cal_meal_id, cal_amount, " . $lastterm . 
-              "VALUES ( $id, '$userId', $billingGroup, '$description', $mealId, $amount, " . $lastval;
-          $this->query( $sql );
+          $chargetable = $this->table('cohomeals_financial_log');
+          $insertValues = ['cal_login'=>$userId, 'cal_billing_group'=>$billingGroup, 'cal_description'=>$description, 'cal_meal_id'=>$mealId, 'cal_amount'=>$amount, 'cal_running_balance'=>$balance];
+          if ( $notes != '' ) $insertValues['cal_notes'] = $notes;
+          $chargetable->insert( $insertValues );
       }
       return true;
   }

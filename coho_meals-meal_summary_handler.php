@@ -67,12 +67,7 @@ if ( isset($_REQUEST["walkin"] ) ) {
         $description = $fullname . " dining (multiplier " . $multiplier . ")";
         $billingGroup = $cohomeals->get_billingId( $wi );
         $cohomeals->charge_person( $billingGroup, $amount, $description, $mealId, $fullname, $wi );
-        $res = $mytable->insert( ['cal_id'=>$mealId, 'cal_login'=>$wi, 'cal_type'=>'M'] );
-        if ( !$res ) {
-            $smarty->assign('msg', 'Error charging walkins.');
-            $smarty->display("error.tpl");
-            die;
-        }
+        $mytable->insert( ['cal_id'=>$mealId, 'cal_login'=>$wi, 'cal_type'=>'M'] );
         $numwalkins++;
     }
 }
@@ -88,18 +83,13 @@ if ( isset($_REQUEST["newguest"] ) ) {
         $hostname = $cohomeals->get_fullname( $cur_host );
         $hostbilling = $cohomeals->get_billingId( $cur_host );
         if ( !$hostbilling ) $hostbilling = $cohomeals->get_billingId( $user );
-        $mult = $multiplier[$i]; error_log("guest multiplier is " . $mult );
+        $mult = $multiplier[$i];
         if ( !is_numeric( $mult ) ) $mult = 1;
         $amount = -1*$mult*$base_price;
         $description = $ng . " dining (guest of " . $hostname . "), (multiplier " . $mult . ")";
         $cohomeals->charge_person( $hostbilling, $amount, $description, $mealId, $ng, $cur_host );
 
-        $res = $guesttable->insert( ['cal_meal_id'=>$mealId, 'cal_fullname'=>$ng, 'cal_host'=>$cur_host, 'meal_multiplier'=>$mult, 'cal_type'=>'M'] );
-        if (!$res) {
-            $smarty->assign('msg', 'Error entering guests.');
-            $smarty->display("error.tpl");
-            die;
-        }
+        $guesttable->insert( ['cal_meal_id'=>$mealId, 'cal_fullname'=>$ng, 'cal_host'=>$cur_host, 'meal_multiplier'=>$mult, 'cal_type'=>'M'] );
         $i++;
         $numwalkins++;
     }
