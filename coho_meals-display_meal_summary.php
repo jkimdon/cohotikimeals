@@ -96,14 +96,14 @@ if ( !$paperwork_done ) { // getting values from the form not the database
     $farmcents = $_REQUEST["farmersCents"]; 
     $farmercost = $farmdollars + $farmcents/100;
     $smarty->assign( 'farmercost', $farmercost );
-    $totalexpenses += $farmercost/100;
+    $totalexpenses += $farmercost;
     
     $numdiners = $cohomeals->count_diners( $mealId, false ); // unweighted
     $numdiners += $numwalkins; // calculated above
     $smarty->assign( 'numdiners', $numdiners );
     $flatrate = $numdiners * 0.1;
     $smarty->assign( 'flatrate', $flatrate );
-    $totalexpenses += $flatrate/100;
+    $totalexpenses += $flatrate;
     $smarty->assign( 'numdiners', $numdiners );
     
     $pantrycost = 0;

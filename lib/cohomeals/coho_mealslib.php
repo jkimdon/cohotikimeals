@@ -992,7 +992,6 @@ class CohoMealsLib extends TikiLib
           return $mealdatetime;
       }
 
-      $mealinfo = array();
       $query = "SELECT cal_date, cal_time FROM cohomeals_meal WHERE cal_id = $mealId";
       $res = $this->query( $query );
       if ( $info = $res->fetchRow() ) {
