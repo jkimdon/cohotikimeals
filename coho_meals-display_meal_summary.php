@@ -151,34 +151,26 @@ if ( !$paperwork_done ) { // getting values from the form not the database
     $smarty->assign( 'totalincome', $totalincome );
 
     $totalexpenses = 0;
-    
-    $sql = "SELECT cal_amount FROM cohomeals_food_expenditures WHERE cal_meal_id = $mealId";
     $shoppercost = 0;
-    $shoppers = $cohomeals->fetchAll($sql);
-    foreach( $shoppers as $shopper ) {
-        $shoppercost += $shopper["cal_amount"]/100;
-    }
-    $smarty->assign( 'shoppercost', $shoppercost );    
-    $totalexpenses += $shoppercost;
+    $pantrycost = 0;
+    $farmercost = 0;
+    $flatrate = 0;
     
-    $farmercost = $cohomeals->get_food_cost_for_meal( $mealId, 'farmers market' );
-    $smarty->assign( 'farmercost', $farmercost/100 );        
-    $totalexpenses += $farmercost;
+    $totalexpenses = $cohomeals->get_MealExpenses( $mealId, $shoppercost, $pantrycost, $farmercost, $flatrate );
+    $totalexpenses /= 100;
     
-    $flatrate = $cohomeals->get_food_cost_for_meal( $mealId, 'flat rate' );
-    $smarty->assign( 'flatrate', $flatrate/100 );        
-    $totalexpenses += $flatrate;
-    
+    $smarty->assign( 'totalexpenses', $totalexpenses );
+    $smarty->assign( 'shoppercost', $shoppercost/100 );
+    $smarty->assign( 'farmercost', $farmercost/100 );
+    $smarty->assign( 'flatrate', $flatrate/100 );
+
+    // get pantry details
     $pantry_description = '';
     $pantry_omit = array( 'farmers market', 'flat rate' );
     $pantrycost = $cohomeals->get_pantry_purchases( $pantry_details, $mealId, $pantry_omit );
     $smarty->assign( 'pantrycost', $pantrycost/100 );
     $smarty->assign( 'pantry_details', $pantry_details ); 
-    $totalexpenses += $pantrycost;
-    $totalexpenses /= 100;
     
-    $smarty->assign( 'totalexpenses', $totalexpenses );
-
     $smarty->assign( 'profit', $totalincome-$totalexpenses );
 
     $weighted_diners = $cohomeals->count_diners( $mealId, true );

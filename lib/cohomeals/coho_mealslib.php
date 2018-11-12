@@ -520,17 +520,15 @@ class CohoMealsLib extends TikiLib
       
       $pricesum = 0;
       $pantry_details = array();
-      $query = "SELECT cal_total_price, cal_number_units, cal_food_id FROM cohomeals_pantry_purchases " .
-          "WHERE cal_meal_id = $mealId AND cal_food_id NOT IN ('" . implode( "', '", $omit_ids ) . "')";
-      $allrows = $this->fetchAll( $query );
+      $pantryTable = $this->table('cohomeals_pantry_purchases');
+      $nameTable = $this->table('cohomeals_pantry_food');
+      $allrows = $pantryTable->fetchAll( ['cal_total_price', 'cal_number_units', 'cal_food_id'], ['cal_meal_id'=>$mealId, 'cal_food_id'=>$pantryTable->notIn( $omit_ids )] );
       foreach( $allrows as $row ) {
           $pricesum += $row["cal_total_price"];
 
-          $query2 = "SELECT cal_unit, cal_description FROM cohomeals_pantry_food " .
-              "WHERE cal_food_id = " . $row["cal_food_id"];
-          $food = $this->getOne( $query2 );
+          $food = $nameTable->fetchRow( ['cal_unit', 'cal_description'], ['cal_food_id'=>$row['cal_food_id']] );
           if( $food ) {
-              $pantry_details[] = array( "food"=>$food["cal_description"], "cost"=>$row["cal_total_price"]/100.00, "numunits"=>$row["cal_number_units"], "units"=>$food["cal_unit"] );
+              $pantry_details[] = array( "food"=>$food["cal_description"], "cost"=>$row["cal_total_price"]/100, "numunits"=>$row["cal_number_units"], "units"=>$food["cal_unit"] );
           }
       }
       return $pricesum;
@@ -730,6 +728,47 @@ class CohoMealsLib extends TikiLib
       return $income;
   }
 
+
+  // used in meal summary and finance inspection
+  // draws from database (actual costs entered)
+  //
+  // results are in cents (must divide by 100 later)
+  function get_MealExpenses( $mealId, &$shoppercost=NULL, &$pantrycost=NULL, &$farmercost=NULL, &$flatrate=NULL ) {
+
+      $expenses = 0;
+      
+      $expenseTable = $this->table('cohomeals_food_expenditures');
+      $res = $expenseTable->fetchAll( ['cal_amount'], ['cal_meal_id'=>$mealId] );
+      $samt = 0;
+      foreach ( $res as $row ) {
+          $samt += $row['cal_amount'];
+      }
+      if ( isset($shoppercost) ) $shoppercost = $samt;
+      $expenses += $samt;
+
+      $pantryTable = $this->table('cohomeals_pantry_purchases');
+      $res = $pantryTable->fetchAll( ['cal_total_price'], ['cal_meal_id'=>$mealId] );
+      $pamt = 0;
+      foreach ( $res as $row ) {
+          $pamt += $row['cal_total_price'];
+      }
+      $expenses += $pamt;
+
+      if ( isset($pantrycost) || isset($farmercost) || isset($flatrate) ) {
+          $famt = $this->get_food_cost_for_meal( $mealId, 'farmers market' );
+          if ( isset($farmercost) ) $farmercost = $famt;
+          $pamt -= $famt;
+    
+          $framt = $this->get_food_cost_for_meal( $mealId, 'flat rate' );
+          if ( isset($flatrate) ) $flatrate = $framt;
+          $pamt -= $framt;
+
+          if ( isset($pantrycost) ) $pantrycost = $pamt;
+      }
+
+      return $expenses;
+  }
+  
   
   // used in meal summary
   function paperwork_done( $mealId ) {
