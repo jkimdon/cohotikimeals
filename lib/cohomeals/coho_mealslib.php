@@ -921,7 +921,7 @@ class CohoMealsLib extends TikiLib
           $balance += $amount;
           $chargetable = $this->table('cohomeals_financial_log');
           $insertValues = ['cal_login'=>$userId, 'cal_billing_group'=>$billingGroup, 'cal_description'=>$description, 'cal_meal_id'=>$mealId, 'cal_amount'=>$amount, 'cal_running_balance'=>$balance];
-          if ( $notes != '' ) $insertValues['cal_notes'] = $notes;
+          if ( $notes != '' ) $insertValues['cal_text'] = $notes;
           $chargetable->insert( $insertValues );
       }
       return true;
