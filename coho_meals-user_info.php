@@ -283,7 +283,7 @@ if ( $is_meal_admin || $is_finance_admin ) {
         // check to see if the actual and expected charges are equal
         $expected_charges = -1*$cohomeals->diner_income( $row["cal_id"], false );
         $actual_charges = -1*$cohomeals->diner_income( $row["cal_id"], true );
-        if ( $expected_charges != $actual_charges ) {
+        if ( ($expected_charges != ($actual_charges+1)) && ($expected_charges != ($actual_charges-1)) && ($expected_charges != $actual_charges) ) { // allow for difference of one cent to allow for different rounding
             $diff = $expected_charges - $actual_charges;
             $badcharged[] = array( "cal_meal_id"=>$row["cal_id"],"mealdatetime"=>$mealdatetime->format('U'),"mealtitle"=>$title,"chargediff"=>$diff);
         }

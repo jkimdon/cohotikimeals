@@ -709,7 +709,7 @@ class CohoMealsLib extends TikiLib
           foreach( $allrows as $row ) { 
               if ( $billingGroup != 0 ) {
                   if ( $billingGroup != $this->get_billingId( $row["cal_host"] ) ) 
-                      break;
+                      continue;
               } 
               $income += ( $row["meal_multiplier"] * $base_price );
           }
