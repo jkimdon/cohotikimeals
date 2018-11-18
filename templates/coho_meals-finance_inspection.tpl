@@ -10,7 +10,7 @@
 From October 1, 2017 to Sept 30, 2018:
 </p>
 <table class="finhistory">
-<tr class="even"><td>Overall diner income:</td><td>{$allIncome|string_format:"\$%.2f"}</td></tr>
+<tr class="even"><td>Overall diner income:</td><td>{$allIncome|string_format:"\$%.2f"} (expected {$expectedIncome|string_format:"\$%.2f"})</td></tr>
 <tr class="odd"><td>Overall shopper expenses:</td><td>{$allShoppers|string_format:"\$%.2f"}</td></tr>
 <tr class="even"><td>Overall pantry purchases:</td><td>{$allPantry|string_format:"\$%.2f"}</td></tr>
 <tr class="odd"><td>Overall Farmers Cards:</td><td>{$allFarmers|string_format:"\$%.2f"}</td></tr>

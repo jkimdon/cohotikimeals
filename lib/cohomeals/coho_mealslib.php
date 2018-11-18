@@ -811,7 +811,11 @@ class CohoMealsLib extends TikiLib
           $bg = $this->get_billingId( $diner["cal_login"] );
           $realname = $this->get_user_preference($diner["cal_login"], 'realName', $diner["cal_login"]);
           if ($realname == '' ) $realname = $diner["cal_login"];
-          $description = $realname . " dining. (multiplier = " . $multiplier . ")";
+          if ( $amount < 0 ) {
+              $description = $realname . " dining (adjustment). (multiplier = " . $multiplier . ")";
+          } else {
+              $description = $realname . " dining. (multiplier = " . $multiplier . ")";
+          }
           $this->charge_person( $bg, $amount, $description, $mealId, $realname, $diner["cal_login"] );
       }
 

@@ -43,6 +43,7 @@ $chefTable = $tikilib->table('cohomeals_meal_participant');
 $allMeals = $mealTable->fetchAll(['cal_id', 'paperwork_done', 'diners_charged'], ['cal_date'=>$mealTable->between('20170930','20181001'), 'cal_cancelled'=>0]);
 
 $allIncome = 0;
+$expectedIncome = 0;
 $allPantry = 0;
 $allShoppers = 0;
 $allFarmers = 0;
@@ -58,8 +59,10 @@ foreach ( $allMeals as $meal ) {
     $chefs[$thisChef]['paperworkDone'] += $meal['paperwork_done'];
     $chefs[$thisChef]['mealsCharged'] += $meal['diners_charged'];
     $thisincome = $cohomeals->diner_income( $mealId, true )/100;
+    $expectedThisIncome = $cohomeals->diner_income( $mealId, false )/100;
     $chefs[$thisChef]['netIncome'] += $thisincome;
     $allIncome += $thisincome;
+    $expectedIncome += $expectedThisIncome;
     $shoppers = 0;
     $pantry = 0;
     $farmers = 0;
@@ -76,6 +79,7 @@ $smarty->assign('allPantry', $allPantry);
 $smarty->assign('allFlatrate', $allFlatrate);
 $smarty->assign('allFarmers', $allFarmers);
 $smarty->assign('allIncome', $allIncome);
+$smarty->assign('expectedIncome', $expectedIncome);
 $allExpenses = $allShoppers + $allPantry + $allFlatrate + $allFarmers;
 $smarty->assign('allExpenses', $allExpenses);
 $smarty->assign('netIncome', $allIncome - $allExpenses );
