@@ -144,7 +144,7 @@ if ( $sortbymeal ) {
             if ( $idselectors != "" ) $whereclause .= " AND " . $idselectors;
         } else if ( $idselectors != "" ) $whereclause = "WHERE " . $idselectors;
         else $whereclause = "";
-        $query2 = "SELECT cal_login, cal_meal_id, cal_description, cal_amount, cal_running_balance, cal_text, cal_timestamp FROM cohomeals_financial_log " . $whereclause . " ORDER BY cal_timestamp DESC, cal_billing_group LIMIT 100";
+        $query2 = "SELECT cal_login, cal_meal_id, cal_description, cal_amount, cal_running_balance, cal_text, cal_timestamp, cal_billing_group FROM cohomeals_financial_log " . $whereclause . " ORDER BY cal_timestamp DESC, cal_billing_group LIMIT 100";
         $newrows = $cohomeals->fetchAll($query2);
         $adminfinlog = array();
         foreach( $newrows as $row ) {
