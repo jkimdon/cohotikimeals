@@ -61,8 +61,8 @@ class CohoMealsLib extends TikiLib
             $sql = "INSERT INTO cohomeals_meal_participant (cal_id, cal_login, cal_type, cal_notes ) VALUES ("
                 . $newmealid . ", '" . $cr["username"] . "', 'C'" . ", '" . $cr['job'] . "')";
             if ( !$this->query($sql) ) {
-                $smarty->assign('msg', 'Error adding recurring crew.');
-                $smarty->display("error.tpl");
+                echo "Error adding recurring crew.";
+                error_log( "Error adding recurring crew." );
                 die;
             }
         }
@@ -73,8 +73,8 @@ class CohoMealsLib extends TikiLib
             $sql = "INSERT INTO cohomeals_meal_participant (cal_id, cal_login, cal_type ) VALUES ("
                 . $newmealid . ", '" . $diner["username"] . "', 'M'" . ")";
             if ( !$this->query($sql) ) {
-                $smarty->assign('msg', 'Error adding recurring crew.');
-                $smarty->display("error.tpl");
+                echo "Error adding recurring crew.";
+                error_log( "Error adding recurring crew." );
                 die;
             }
         }
@@ -849,8 +849,8 @@ class CohoMealsLib extends TikiLib
       // set the charged flag
       $query = "UPDATE cohomeals_meal SET diners_charged=1 WHERE cal_id = $mealId";
       if ( !$this->query( $query ) ) {
-          $smarty->assign('msg', 'Error refunding meal.');
-          $smarty->display("error.tpl");
+          echo "Error refunding meal.";
+          error_log( "Error refunding meal." );
           die;
       }
   }
@@ -885,8 +885,8 @@ class CohoMealsLib extends TikiLib
           $billingGroup = $this->get_billingId( $userId ); 
       if ( ($billingGroup == false) || (!is_numeric($billingGroup)) || ($billingGroup <=0) ) {
           if ( $userId == '' ) {
-              $smarty->assign('msg', 'Missing userId and billing group in enter_finlog.');
-              $smarty->display("error.tpl");
+              error_log( 'Missing userId and billing group in enter_finlog.');
+              echo "Missing userId and billing group in enter_finlog.";
               die;
           }
           $billingGroup = $this->make_new_billingGroup( $userId );
@@ -969,8 +969,8 @@ class CohoMealsLib extends TikiLib
       // reset the charged flag
       $query = "UPDATE cohomeals_meal SET diners_charged=NULL WHERE cal_id = $mealId";
       if ( !$this->query( $query ) ) {
-          $smarty->assign('msg', 'Error refunding meal.');
-          $smarty->display("error.tpl");
+          echo "Error refunding meal.";
+          error_log( "Error refunding meal." );
           die;
       }
       return $mealdatetime;
@@ -986,24 +986,24 @@ class CohoMealsLib extends TikiLib
       // shoppers
       $query = "DELETE FROM cohomeals_food_expenditures WHERE cal_meal_id = $mealId";
       if ( !$this->query( $query ) ) {
-          $smarty->assign('msg', 'Error removing shoppers.');
-          $smarty->display("error.tpl");
+          echo "Error removing shoppers.";
+          error_log( "Error removing shoppers." );
           die;
       }
 
       // pantry, including farmers market and flat rate
       $query = "DELETE FROM cohomeals_pantry_purchases WHERE cal_meal_id = $mealId";
       if (!$this->query( $query ) ) {
-          $smarty->assign('msg', 'Error removing pantry items.');
-          $smarty->display("error.tpl");
+          echo "Error removing pantry items.";
+          error_log( "Error removing pantry items." );
           die;
       }
 
       // reset paperwork flag
       $query = "UPDATE cohomeals_meal SET paperwork_done = NULL WHERE cal_id = $mealId";
       if (!$this->query( $query ) ) {
-          $smarty->assign('msg', 'Error setting paperwork flag.');
-          $smarty->display("error.tpl");
+          echo "Error setting paperwork flag.";
+          error_log( "Error setting paperwork flag." );
           die;
       }
   }
@@ -1161,6 +1161,7 @@ class CohoMealsLib extends TikiLib
 
   // used in coho_meals-user_info
   function get_billingId( $theuser ) {
+      if ( $theuser == '' ) return false;
       $bgId = $this->get_user_preference( $theuser, 'billingGroup' );
       if ($bgId > 0) return $bgId;
       else return false;
