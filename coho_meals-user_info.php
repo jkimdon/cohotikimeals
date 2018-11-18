@@ -242,8 +242,9 @@ if ( $is_meal_admin || $is_finance_admin ) {
     }
     $smarty->assign( 'delinquencies', $delinquencies );
     
-    // admin list of meals not charged 
-    $query = "SELECT cal_id, meal_title FROM cohomeals_meal WHERE cal_cancelled=0 AND diners_charged IS NULL";
+    // admin list of meals not charged
+    $todaysDate = new DateTime( "now", $tz );
+    $query = "SELECT cal_id, meal_title FROM cohomeals_meal WHERE cal_cancelled=0 AND diners_charged IS NULL AND cal_date <= " . $todaysDate->format('Ymd');
     $newrows = $cohomeals->fetchAll($query);
     $uncharged = array();
     foreach( $newrows as $row ) {
