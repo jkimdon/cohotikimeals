@@ -50,19 +50,24 @@ if ( empty ( $mealId ) || $mealId <= 0 || ! is_numeric ( $mealId ) ) {
 
 $smarty->assign('mealId', $mealId);
 
-if ( isset($_REQUEST["mealdatetime"]) ) $mealdatetime = $_REQUEST["mealdatetime"];
-else {
-  $smarty->assign('msg', 'Invalid meal date.');
-  $smarty->display("error.tpl");
-  die;
-}
-
 $cohomeals = new CohoMealsLib;
 $cohomeals->set_user( $user );
 $cohomeals->set_meal_admin( $is_meal_admin );
 $smarty->assign('is_meal_admin', $is_meal_admin);
 
 $smarty->assign('loggedinuser', $user);
+
+if ( isset($_REQUEST["mealdatetime"]) ) $mealdatetime = $_REQUEST["mealdatetime"];
+else {
+    if ( $mealtype == 'recurring' ) {
+        $smarty->assign('msg', 'Invalid meal date.');
+        $smarty->display("error.tpl");
+        die;
+    } else {
+        $mealdatetime = $cohomeals->get_mealdatetime( $mealId )->format('U');
+    }
+}
+
 
 /// load meal info
 $meal = array();
