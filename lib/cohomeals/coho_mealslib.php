@@ -55,6 +55,17 @@ class CohoMealsLib extends TikiLib
         ///////////
         // insert the recurring participants 
 
+        // head chef
+        $hc = $this->recurring_head_chef( $recurrenceId );
+        $sql = "INSERT INTO cohomeals_meal_participant (cal_id, cal_login, cal_type ) VALUES ("
+            . $newmealid . ", '" . $hc . "', 'H')";
+        if ( !$this->query($sql) ) {
+            echo "Error adding recurring head chef.";
+            error_log( "Error adding recurring head chef." );
+            die;
+        }
+        
+        
         // crew
         $crew = $this->load_recurring_crew($recurrenceId);
         foreach( $crew as $cr ) {
