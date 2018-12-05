@@ -637,6 +637,11 @@ class CalendarLib extends TikiLib
           // they are listed by day of the week (text) and week number in the month
           // also there is an option of alternating cheffing months, so we check for
           // even or odd month as well.
+
+          // but we only want to show recurring meals after August 2018 since before then, there were not recurring meals so we
+          // don't have override flags on older meals.
+          if ( $i < 1535682495 ) continue;
+          
           $which_day = TikiLib::date_format("%A", $i); // full weekday name
 
           $tmp = strtotime("First " . $which_day . " of this month", $i);
