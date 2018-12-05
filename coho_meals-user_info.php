@@ -256,7 +256,7 @@ if ( $is_meal_admin || $is_finance_admin ) {
     $smarty->assign('uncharged', $uncharged);
 
     // admin list of meals with paperwork undone
-    $query = "SELECT cal_id, meal_title FROM cohomeals_meal WHERE cal_cancelled=0 AND paperwork_done IS NULL";
+    $query = "SELECT cal_id, meal_title FROM cohomeals_meal WHERE cal_cancelled=0 AND paperwork_done IS NULL AND cal_date <= " . $todaysDate->format('Ymd');
     $newrows = $cohomeals->fetchAll($query);
     $nopaperwork = array();
     foreach( $newrows as $row ) {
