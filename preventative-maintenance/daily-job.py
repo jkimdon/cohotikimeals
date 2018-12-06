@@ -6,7 +6,6 @@ import boto3
 from botocore.exceptions import ClientError
 from datetime import datetime
 
-
 def send_email(recipient, subject, body):
     AWS_REGION = "us-west-2"
     SENDER = "David Kimdon <dkimdon@gmail.com>"
@@ -19,6 +18,9 @@ def send_email(recipient, subject, body):
             Destination={
                 'ToAddresses': [
                     recipient,
+                ],
+                'CcAddresses': [
+                    SENDER,
                 ],
             },
             Message={
@@ -33,6 +35,9 @@ def send_email(recipient, subject, body):
                     'Data': subject,
                 },
             },
+            ReplyToAddresses=[
+                SENDER,
+            ],
             Source=SENDER,
         )
     except ClientError as e:
@@ -78,17 +83,22 @@ def collect_tasks():
     else:
         for row in values:
             task = {}
-            month = int(row[0])
-            day = int(row[1])
+            column = 0
+            month = int(row[column])
+            column += 1
+            day = int(row[column])
+            column += 1
             if month != datetime.now().month or day != datetime.now().day:
                 print('skipping')
                 print(datetime.now().day)
                 print(day)
                 continue
-            task['name'] = row[2]
-            task['email'] = row[3]
-            task['subject'] = row[4]
-            task['body'] = row[5]
+            task['email'] = row[column]
+            column += 1
+            task['subject'] = row[column]
+            column += 1
+            task['body'] = row[column]
+            column += 1
             tasks.append(task)
     return tasks
 
