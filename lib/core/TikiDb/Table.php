@@ -248,6 +248,11 @@ class TikiDb_Table
 		return $this->expr('$$ < ?', [$value]);
 	}
 
+    function between($value1, $value2)
+    {
+        return $this->expr('($$ > ? AND $$ < ?)', [$value1,$value2]);
+    }
+    
 	function not($value)
 	{
 		if (empty($value)) {

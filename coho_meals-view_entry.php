@@ -50,19 +50,24 @@ if ( empty ( $mealId ) || $mealId <= 0 || ! is_numeric ( $mealId ) ) {
 
 $smarty->assign('mealId', $mealId);
 
-if ( isset($_REQUEST["mealdatetime"]) ) $mealdatetime = $_REQUEST["mealdatetime"];
-else {
-  $smarty->assign('msg', 'Invalid meal date.');
-  $smarty->display("error.tpl");
-  die;
-}
-
 $cohomeals = new CohoMealsLib;
 $cohomeals->set_user( $user );
 $cohomeals->set_meal_admin( $is_meal_admin );
 $smarty->assign('is_meal_admin', $is_meal_admin);
 
 $smarty->assign('loggedinuser', $user);
+
+if ( isset($_REQUEST["mealdatetime"]) ) $mealdatetime = $_REQUEST["mealdatetime"];
+else {
+    if ( $mealtype == 'recurring' ) {
+        $smarty->assign('msg', 'Invalid meal date.');
+        $smarty->display("error.tpl");
+        die;
+    } else {
+        $mealdatetime = $cohomeals->get_mealdatetime( $mealId )->format('U');
+    }
+}
+
 
 /// load meal info
 $meal = array();
@@ -72,15 +77,13 @@ if ( !$cohomeals->load_meal_info($mealtype, $mealId, $meal) ) {
     die;
 }
 
-$smarty->assign('mealmenu', $meal["menu"]);
-$smarty->assign('mealnotes', $meal["notes"]);
+$smarty->assign('meal', $meal);
 
 $smarty->assign('mealdatetime', $mealdatetime );
-$smarty->assign('mealcancelled', $meal["cancelled"]);
 $tmpsignupdatetime = strtotime("-".$meal["signup_deadline"]." days",$mealdatetime);
 $deadline = new DateTime();
 $deadline->setTimestamp( $tmpsignupdatetime );
-$tz = TikiDate::TimezoneIsValidId($prefs['server_timezone']) ? $prefs['server_timezone'] : 'PST';
+$tz = TikiDate::TimezoneIsValidId($prefs['server_timezone']) ? $prefs['server_timezone'] : 'US/Pacific';
 $deadline->setTimezone( new DateTimeZone( $tz ) );
 $deadline->setTime( 23, 59 );
 $signupdatetime = $deadline->format('U');
@@ -128,7 +131,7 @@ $diners = $cohomeals->load_diners($mealId, $mealtype, $user);
 $smarty->assign('diners', $diners);
 
 if ( $mealtype == "regular" ) {
-    $income = $cohomeals->diner_income( $mealId, false );
+    $income = $cohomeals->diner_income( $mealId, false ) / 100;
     $smarty->assign( 'income', $income );
     $numdiners = $cohomeals->count_diners( $mealId, false );
     $smarty->assign( 'numdiners', $numdiners );

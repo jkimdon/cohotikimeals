@@ -1,5 +1,5 @@
-<a href="coho_meals-view_entry.php?id={$mealId}&mealdatetime={$meal.mealdatetime}">
-<h1>Meal Report for {$meal.title} on {$meal.mealdatetime|tiki_date_format:"%a, %b %e, %Y"} at {$meal.mealdatetime|tiki_date_format:"%a, %b %e"}</h1>
+<a href="coho_meals-view_entry.php?id={$mealId}&mealdatetime={$mealdatetime}">
+<h1>Meal Report for {$meal.title} on {$mealdatetime|tiki_date_format:"%a, %b %e, %Y"} at {$mealdatetime|tiki_date_format:"%I:%M %p"}</h1>
 </a>
 
 {if $paperwork_done}
@@ -49,7 +49,7 @@
 {else} {* confirming *}
 
    <input type="hidden" name="id" value="{$mealId}" />
-   <input type="hidden" name="mealdatetime" value="{$meal.mealdatetime}" />
+   <input type="hidden" name="mealdatetime" value="{$mealdatetime}" />
    <input type="hidden" name="mealtype" value="regular" />
    {foreach item=w from=$passthroughwalkin}
       <input type="hidden" name="walkin[]" value="{$w}" />

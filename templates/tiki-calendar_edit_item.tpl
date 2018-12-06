@@ -308,7 +308,7 @@
 		        <input type="hidden" name="save[start]" value="{$calitem.start}" id="start" />
 			{/if}
 			<td rowspan="2" style="border:0;vertical-align:middle" class="html_select_time">
-				<span id="starttime" style="display: {if $calitem.allday} none {else} inline {/if}">{html_select_time prefix="start_" display_seconds=false time=$calitem.start minute_interval=$prefs.calendar_timespan hour_minmax=$hour_minmax}</span>
+				<span id="starttime" style="display: {if $calitem.allday} none {else} inline {/if}">{html_select_time prefix="start_" display_seconds=false display_meridian=true use_24_hours=false time=$calitem.start minute_interval=$prefs.calendar_timespan}</span>
 			</td>
 			<td style="border:0;padding-top:2px;vertical-align:middle;" rowspan="2">
 				<label for="alldayid">
@@ -359,7 +359,7 @@
 			</div></td>
 			{/if}
 			<td rowspan="2" style="border:0;vertical-align:middle" class="html_select_time">
-				<span id="endtime" style="display: {if $calitem.allday} none {else} inline {/if}">{html_select_time prefix="end_" display_seconds=false time=$calitem.end minute_interval=$prefs.calendar_timespan hour_minmax=$hour_minmax}</span>
+				<span id="endtime" style="display: {if $calitem.allday} none {else} inline {/if}">{html_select_time prefix="end_" display_seconds=false display_meridian=true use_24_hours=false time=$calitem.end minute_interval=$prefs.calendar_timespan}</span>
 			</td>
 				  {*			<td rowspan="2" style="border:0;padding-top:2px;vertical-align:middle">
 				<span id="duration" style="display: {if $calitem.allday} none {else} inline {/if}"><a href="#" onclick="document.getElementById('end_or_duration').value='duration';flip('end_duration');flip('end_date');return false;">{tr}Duration{/tr}</a></span>

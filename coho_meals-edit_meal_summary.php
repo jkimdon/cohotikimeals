@@ -131,6 +131,7 @@ if ( $mealtype == "regular" ) {
         $mealinfo = array();
         $cohomeals->load_meal_info( "regular", $mealId, $mealinfo );
         $smarty->assign( 'meal', $mealinfo );
+        $smarty->assign( 'mealdatetime', $mealinfo["mealdatetime"]->format('U') );
 
         if (isset($_REQUEST["walkin"])) $walkins = $_REQUEST["walkin"]; 
         else $walkins = [];
@@ -151,6 +152,7 @@ if ( $mealtype == "regular" ) {
             $mealpeople[] = array( "username" => $person_username, "realName" => $person_realname, "status" => $status );
         }
         $smarty->assign('mealpeople', $mealpeople);
+        $smarty->assign('formfiller', $user);
         
         $guest_diners = $cohomeals->load_guests( $mealId );
         $smarty->assign( 'guest_diners', $guest_diners );

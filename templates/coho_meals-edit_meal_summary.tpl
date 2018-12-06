@@ -1,5 +1,5 @@
-<a href="coho_meals-view_entry.php?id={$mealId}&mealdatetime={$meal.mealdatetime}">
-<h1>Edit Meal Report for {$meal.title} on {$meal.mealdatetime|tiki_date_format:"%a, %b %e, %Y"} at {$meal.mealdatetime|tiki_date_format:"%a, %b %e"}</h1>
+<a href="coho_meals-view_entry.php?id={$mealId}&mealdatetime={$mealdatetime}">
+<h1>Edit Meal Report for {$meal.title} on {$mealdatetime|tiki_date_format:"%a, %b %e, %Y"} at {$mealdatetime|tiki_date_format:"%I:%M %p"}</h1>
 </a>
 {if $allowed_to_edit eq false}
     Please get the head chef to do the meal summary.
@@ -41,15 +41,14 @@
 {/foreach}
 {for $j=0 to 2}
     <tr><td><input type="text" size="30" maxlength="70" name="newguest[]" value=""/></td>
-        <td><input type="number" step="0.01" name="multiplier[{$i}]" value="1.0"/></td>
+        <td><input type="number" step="0.01" name="multiplier[]" value="1.0"/></td>
 	<td><select name="host[]">
 	       <option value="none" selected="selected">Select host</option>
 	       {foreach item=hostoption from=$mealpeople}
-	           <option value="{$hostoption.username}">{$hostoption.realName}</option>
+	           <option value="{$hostoption.username}" {if $hostoption.username eq $formfiller}selected="selected"{/if}>{$hostoption.realName}</option>
 	       {/foreach}
 	    </select></td>
     </tr>
-    {$i=$i+1}
 {/for}
 </table>
 
@@ -71,8 +70,8 @@
 	      <option value="{$shopperoption.username}" {if $shopperoption.username eq $confirmshopper.username}selected="selected"{/if}>{$shopperoption.realName} </option>
 	   {/foreach}
         </select></td>
-      <td>$<input type="text" name="dollars[]" size="3" value="{$confirmshopper.dollars}"/></td>
-      <td>.<input type="text" name="cents[]" size="2" value="{$confirmshopper.cents}"/></td>
+      <td>$<input type="text" name="dollars[]" size="3" maxlength="3" value="{$confirmshopper.dollars}"/></td>
+      <td>.<input type="text" name="cents[]" size="2" maxlength="2" value="{$confirmshopper.cents}"/></td>
       <td><input type="text" name="vendor[]" size="15" maxlength="50" value="{$confirmshopper.vendor}"/></td>
   </tr>
 {/foreach}

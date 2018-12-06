@@ -30,13 +30,14 @@ $smarty->assign( 'mealId', $mealId );
 $mealinfo = array();
 $cohomeals->load_meal_info( "regular", $mealId, $mealinfo );
 $smarty->assign( 'meal', $mealinfo );
+$smarty->assign( 'mealdatetime', $mealinfo["mealdatetime"]->format('U') );
 
 $paperwork_done = $cohomeals->paperwork_done( $mealId );
 $smarty->assign( 'paperwork_done', $paperwork_done );
 
 if ( !$paperwork_done ) { // getting values from the form not the database
 
-    $presignup_income = $cohomeals->diner_income( $mealId, false ); 
+    $presignup_income = $cohomeals->diner_income( $mealId, false )/100; 
     $smarty->assign( 'presignup_income', $presignup_income );
 
     $walkin_income = 0;
@@ -53,7 +54,7 @@ if ( !$paperwork_done ) { // getting values from the form not the database
         if ( $walkin != '' ) {
             $walkin_income += $cohomeals->person_cost( $mealId, $walkin );
             $numwalkins++;
-            $weighted_diners += $cohomeals->get_multiplier( $walkin );
+            $weighted_diners += $cohomeals->get_multiplier( $walkin, $mealinfo['mealdatetime'] );
         }
     } 
     // walkin guests
@@ -95,14 +96,14 @@ if ( !$paperwork_done ) { // getting values from the form not the database
     $farmcents = $_REQUEST["farmersCents"]; 
     $farmercost = $farmdollars + $farmcents/100;
     $smarty->assign( 'farmercost', $farmercost );
-    $totalexpenses += $farmercost/100;
+    $totalexpenses += $farmercost;
     
     $numdiners = $cohomeals->count_diners( $mealId, false ); // unweighted
     $numdiners += $numwalkins; // calculated above
     $smarty->assign( 'numdiners', $numdiners );
     $flatrate = $numdiners * 0.1;
     $smarty->assign( 'flatrate', $flatrate );
-    $totalexpenses += $flatrate/100;
+    $totalexpenses += $flatrate;
     $smarty->assign( 'numdiners', $numdiners );
     
     $pantrycost = 0;
@@ -143,41 +144,33 @@ if ( !$paperwork_done ) { // getting values from the form not the database
     
 } else { // getting data from the database
 
-    $presignup_income = $cohomeals->diner_income( $mealId, true );
+    $presignup_income = $cohomeals->diner_income( $mealId, true )/100;
     $smarty->assign( 'presignup_income', $presignup_income );
 
     $totalincome = $presignup_income;
     $smarty->assign( 'totalincome', $totalincome );
 
     $totalexpenses = 0;
-    
-    $sql = "SELECT cal_amount FROM cohomeals_food_expenditures WHERE cal_meal_id = $mealId";
     $shoppercost = 0;
-    $shoppers = $cohomeals->fetchAll($sql);
-    foreach( $shoppers as $shopper ) {
-        $shoppercost += $shopper["cal_amount"]/100;
-    }
-    $smarty->assign( 'shoppercost', $shoppercost );    
-    $totalexpenses += $shoppercost;
+    $pantrycost = 0;
+    $farmercost = 0;
+    $flatrate = 0;
     
-    $farmercost = $cohomeals->get_food_cost_for_meal( $mealId, 'farmers market' );
-    $smarty->assign( 'farmercost', $farmercost/100 );        
-    $totalexpenses += $farmercost;
+    $totalexpenses = $cohomeals->get_MealExpenses( $mealId, $shoppercost, $pantrycost, $farmercost, $flatrate );
+    $totalexpenses /= 100;
     
-    $flatrate = $cohomeals->get_food_cost_for_meal( $mealId, 'flat rate' );
-    $smarty->assign( 'flatrate', $flatrate/100 );        
-    $totalexpenses += $flatrate;
-    
+    $smarty->assign( 'totalexpenses', $totalexpenses );
+    $smarty->assign( 'shoppercost', $shoppercost/100 );
+    $smarty->assign( 'farmercost', $farmercost/100 );
+    $smarty->assign( 'flatrate', $flatrate/100 );
+
+    // get pantry details
     $pantry_description = '';
     $pantry_omit = array( 'farmers market', 'flat rate' );
     $pantrycost = $cohomeals->get_pantry_purchases( $pantry_details, $mealId, $pantry_omit );
     $smarty->assign( 'pantrycost', $pantrycost/100 );
     $smarty->assign( 'pantry_details', $pantry_details ); 
-    $totalexpenses += $pantrycost;
-    $totalexpenses /= 100;
     
-    $smarty->assign( 'totalexpenses', $totalexpenses );
-
     $smarty->assign( 'profit', $totalincome-$totalexpenses );
 
     $weighted_diners = $cohomeals->count_diners( $mealId, true );
