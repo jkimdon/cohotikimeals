@@ -256,6 +256,8 @@ class CohoMealsLib extends TikiLib
       if ($mealtype == "recurring") $cur_login = $row["userId"];
       else $cur_login = $row["cal_login"];
 
+      if ($cur_login == '') $this->purge_empty_userid( $mealid, $mealtype );
+
       // get building number from unit number
       $unit = $this->get_user_preference($cur_login, 'unitNumber', '0');
       if (!$unit || $unit == 0) $building = 10;
@@ -296,6 +298,22 @@ class CohoMealsLib extends TikiLib
     
   }
 
+  // gets rid of erroneous rows with empty userId
+  function purge_empty_userid( $mealId, $mealType ) {
+
+      if ($mealType == 'recurring') {
+          $dinerTable = $this->table('cohomeals_participant_recurrence');
+          $dinerTable->delete(['userId'=>'', 'recurringMealId'=>$mealId]);
+      }
+      else {
+          $dinerTable = $this->table('cohomeals_meal_participant');
+          $dinerTable->delete(['cal_login'=>'', 'cal_id'=>$mealId]);
+      }
+      return true;
+  }
+
+
+  
   // used in meal summary
   function count_diners( $mealId, $use_multiplier=false ) { // only regular (not recurring) meals at this point
       if ( $mealId <= 0 ) return 0;
@@ -433,7 +451,7 @@ class CohoMealsLib extends TikiLib
   /////////////////////////////////
 
   // used in meal detail page
-  function load_guests( $mealid, $participation_type, $mealtype="regular" ) { // only works for regular meals at this point
+  function load_guests( $mealid, $participation_type='M', $mealtype="regular" ) { // only works for regular meals at this point
       $guests = array();
 
       if ($mealtype != "regular") {
@@ -900,9 +918,9 @@ class CohoMealsLib extends TikiLib
           $billingGroup = $this->get_billingId( $userId ); 
       if ( ($billingGroup == false) || (!is_numeric($billingGroup)) || ($billingGroup <=0) ) {
           if ( $userId == '' ) {
-              error_log( 'Missing userId and billing group in enter_finlog.');
-              echo "Missing userId and billing group in enter_finlog.";
-              die;
+              error_log( 'Missing userId and billing group in enter_finlog. Deleting entry');
+              $this->purge_empty_userid( $mealId, 'regular' );
+              return false;
           }
           $billingGroup = $this->make_new_billingGroup( $userId );
       }
@@ -928,6 +946,7 @@ class CohoMealsLib extends TikiLib
               "at time $last_time, balance = $last_balance; " .
               "balance sum = $balance<br>";
           echo $errormsg;
+          error_log($errormsg);
 //          die; // don't die since then it messes everything else up. ideally it would send admin an email... (fixme)
       }
 
