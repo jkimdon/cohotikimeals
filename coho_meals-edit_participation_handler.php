@@ -55,7 +55,8 @@ if ( $mealtype == "recurring" ) {
         die;
     }
     $joburl = "&job=" . preg_replace('/\s+/', '+', $job);
-    header("Location: coho_meals-edit_participation_handler.php?id=" . $newMealId . "&mealdatetime=" . $mealdatetime . "&mealtype=regular&action=" . $action . "&type=" . $participation_type . "&olduser=" . $olduser . $peopleurl . $joburl);
+    $newurl = "coho_meals-edit_participation_handler.php?id=" . $newMealId . "&mealdatetime=" . $mealdatetime . "&mealtype=regular&action=" . $action . "&type=" . $participation_type . "&olduser=" . $olduser . $people_url . $joburl;
+    header("Location: $newurl");
     die;
 }
 
@@ -91,19 +92,30 @@ if ( $mealtype == "regular" ) {
                 }
             }
             elseif ($action == 'A') {
-                if ( ($participation_type == 'H') || ($participation_type == 'M') ) {
-                    $sql = "INSERT INTO cohomeals_meal_participant (cal_id, cal_login, cal_type) " .
-                        "VALUES (" . $mealId . ", '" . $person . "', '" . $participation_type . "')";
-                    if ( !$cohomeals->query($sql) ) {
-                        $smarty->assign('msg', 'Error adding person.');
-                        $smarty->display("error.tpl");
-                        die;
+                $participationTable = $cohomeals->table('cohomeals_meal_participant');
+                if ( $participation_type == 'H' ) {
+                    if ( $cohomeals->has_head_chef( $mealId ) ) {
+                        try {$participationTable->update( ['cal_login'=>$person], ['cal_id'=>$mealId, 'cal_type'=>'H', 'cal_login'=>$olduser] );
+                        } catch (Exception $e) {
+                            $smarty->assign('msg', 'Error updating participation.');
+                            $smarty->display("error.tpl");
+                            die;
+                        }
+                    } else {
+                        try {$participationTable->insert( ['cal_login'=>$person, 'cal_id'=>$mealId, 'cal_type'=>'H'] );
+                        } catch (Exception $e) {
+                            $smarty->assign('msg', 'Error updating participation.');
+                            $smarty->display("error.tpl");
+                            die;
+                        }
                     }
                 }
+                elseif ( $participation_type == 'M' ) {
+                    $participationTable->insert( ['cal_login'=>$person, 'cal_id'=>$mealId, 'cal_type'=>'M'] );
+                }
                 elseif ( $participation_type == 'C' ) {
-                    $sql = "UPDATE cohomeals_meal_participant SET cal_login = '$person' " .
-                        "WHERE cal_id = $mealId AND cal_type = 'C' AND cal_notes = '$job' AND cal_login = '$olduser'";
-                    if ( !$cohomeals->query($sql) ) {
+                    try { $participationTable->update( ['cal_login'=>$person], ['cal_id'=>$mealId, 'cal_type'=>'C', 'cal_notes'=>$job, 'cal_login'=>$olduser] ); 
+                    } catch (Exception $e) {
                         $smarty->assign('msg', 'Error updating participation.');
                         $smarty->display("error.tpl");
                         die;

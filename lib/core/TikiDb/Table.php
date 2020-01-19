@@ -325,9 +325,22 @@ class TikiDb_Table
 			$binds = array_merge($binds, $expr->getValues());
 		}
 
-		return $this->expr('(' . implode(' OR ', $parts) . ')', $binds);
+        return $this->expr('(' . implode(' OR ', $parts) . ')', $binds);
 	}
 
+    function coho_orSameField($field, array $conds)
+    {
+        $binds = [];
+        $parts = [];
+        
+        foreach ($conds as $expr) {
+            $parts[] = $expr->getQueryPart($this->escapeIdentifier($field));
+            $binds = array_merge($binds, $expr->getValues());
+        }
+
+        return $this->expr('(' . implode(' OR ', $parts) . ')', $binds);        
+    }
+    
 	function sortMode($sortMode)
 	{
 		return $this->expr($this->db->convertSortMode($sortMode));

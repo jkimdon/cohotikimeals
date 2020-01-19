@@ -238,6 +238,48 @@ if (isset($_POST['act']) || isset($_REQUEST['delete_occurrence'])) {
 		$save['user'] = $user;
 	}
 	$newcalid = $save['calendarId'];
+    if ( $newcalid == 1 ) { // meal program
+        $cohomeals = new CohoMealsLib;
+        $cohomeals->set_user( $user );
+        $price = 400;
+        if ( isset($_REQUEST['price_dollars']) && isset($_REQUEST['price_cents'] ) ) {
+            $price = 100 * $_REQUEST['price_dollars'] + $_REQUEST['price_cents'];
+        }
+        $deadline = 2;
+        if ( isset($_REQUEST['deadline']) ) $deadline = $_REQUEST['deadline'];
+        
+        if ( $_REQUEST['recurrent'] == 1 ) {
+            $recurrenceType = $_REQUEST['recurrenceType'];
+            $param1 = -1;
+            $param2 = -1;
+
+            if (isset($_REQUEST['startPeriod_Month'])) 
+                $startPeriod = TikiLib::make_time(0,0,0,$_REQUEST['startPeriod_Month'],$_REQUEST['startPeriod_Day'],$_REQUEST['startPeriod_Year']);
+            else $startPeriod = $_REQUEST['startPeriod'];
+            if ($_REQUEST['endType'] == "dt") {
+                if ( isset($_REQUEST['endPeriod_Month']) )
+                    $endPeriod = TikiLib::make_time(0,0,0,$_REQUEST['endPeriod_Month'],$_REQUEST['endPeriod_Day'],$_REQUEST['endPeriod_Year']);
+                else $endPeriod = $_REQUEST['endPeriod'];
+            } else $endPeriod = 0;
+            $mealtime = $_REQUEST['start_Hour'] * 10000 + $_REQUEST['start_Minute'] * 100;
+            
+            switch($_REQUEST['recurrenceType']) {
+            case "weekly":
+                $param1 = $_REQUEST['weekday'];
+                break;
+            case "monthlyByWeekday":
+                $param1 = $_REQUEST['monthlyWeekDay'];
+                $param2 = $_REQUEST['monthlyWeekNumber'];
+                break;
+            }
+            $cohomeals->add_recurring_meal( $save['name'], $price, $deadline, $startPeriod, $endPeriod, $mealtime, $recurrenceType, $param1, $param2 ); // start and end dates are set as unix time stamps
+        }
+        else $cohomeals->add_meal( $save['name'], $save['start'], $price, $deadline );
+        header('Location: tiki-calendar.php?todate=' . $save['start']);
+        die;
+    }
+    else { // non-meal program
+    
 	if ((empty($save['calitemId']) and $caladd["$newcalid"]['tiki_p_add_events'] == 'y')
 	or (! empty($save['calitemId']) and $caladd["$newcalid"]['tiki_p_change_events'] == 'y')) {
 		if (empty($save['name'])) {
@@ -376,6 +418,7 @@ if (isset($_POST['act']) || isset($_REQUEST['delete_occurrence'])) {
 			}
 		}
 	}
+    } // end non-meal program
 }
 
 if (! empty($_REQUEST['viewcalitemId']) && isset($_REQUEST['del_me']) && $tiki_p_calendar_add_my_particip == 'y') {

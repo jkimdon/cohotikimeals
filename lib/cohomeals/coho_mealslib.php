@@ -43,12 +43,16 @@ class CohoMealsLib extends TikiLib
         $meal = $this->fetchAll($sql);
         if ( !$meal ) return false;
         $mealdate = $this->date_format("%Y%m%d", $unixmealdate);
+
+        // this shouldn't happen, but just in case
+        $mealtime = $meal[0]["time"];
+        if ( $mealtime == NULL ) $mealtime = 180000;
         
         // make the override meal
         $sql = "INSERT INTO cohomeals_meal (cal_id, cal_date, cal_time, cal_signup_deadline, cal_base_price, " .
             "cal_max_diners, cal_menu, cal_notes, cal_cancelled, meal_title, recurrenceId, recurrence_override) " .
             "VALUES (";
-        $sql .= $newmealid . ", " . $mealdate . ", " . $meal[0]["time"] . ", " . $meal[0]["signup_deadline"] . ", " .
+        $sql .= $newmealid . ", " . $mealdate . ", " . $mealtime . ", " . $meal[0]["signup_deadline"] . ", " .
             $meal[0]["base_price"] . ", 0, '" . $meal[0]["menu"] . "', '', 0, '" . $meal[0]["meal_title"] . "', " . $recurrenceId . ", true)";
         $result = $this->query($sql);
 
@@ -97,12 +101,17 @@ class CohoMealsLib extends TikiLib
   // used in add_coho_meal_items in calendarlib 
   function has_head_chef( $mealid ) 
   {
+    $participantTable = $this->table('cohomeals_meal_participant');
     $head_chef = "";
     $query = "SELECT cal_login FROM cohomeals_meal_participant " .
       "WHERE cal_id = $mealid AND cal_type = 'H'";
     $haschef = $this->getOne($query);
-    
-    return $haschef;
+
+    if ( $haschef == '' ) {
+        $participantTable->delete( ['cal_id'=>$mealid, 'cal_type'=>'H', 'cal_login'=>''] );
+        return NULL;
+    } else 
+        return $haschef;
   }
 
 
@@ -1099,7 +1108,13 @@ class CohoMealsLib extends TikiLib
   }
 
 
-
+  function timestamp_to_datetime( $timestamp ) { 
+      $tmptz = TikiDate::TimezoneIsValidId($prefs['server_timezone']) ? $prefs['server_timezone'] : 'US/Pacific';
+      $tz = new DateTimeZone( $tmptz );
+      $mealdatetime = new DateTime( 'now', $tz );
+      $mealdatetime->setTimestamp( $timestamp );
+      return $mealdatetime;
+  }
 
   function price_to_str($price) 
   {
@@ -1257,6 +1272,46 @@ class CohoMealsLib extends TikiLib
       return $newid;
   }
 
+  ///////////
+  /// meal creation functions
+
+  function add_meal( $title, $datetime, $price, $deadline ) {
+      $mealtable = $this->table('cohomeals_meal');
+      $mealdatetime = $this->timestamp_to_datetime( $datetime );
+      $insertValues = ['cal_date'=>$mealdatetime->format('Ymd'), 'cal_time'=>$mealdatetime->format('His'), 'cal_signup_deadline'=>$deadline, 'cal_base_price'=>$price, 'meal_title'=>$title];
+      $mealId = $mealtable->insert( $insertValues );
+      return( $mealId );
+  }
+
+
+  // weekly: param1 = day of week
+  // monthly: param1 = day of week (0-6, starting with Sunday), param2 = week number (0-4)
+  function add_recurring_meal( $title, $price, $deadline, $start_unix, $end_unix, $mealtime, $recurrenceType, $param1=-1, $param2=-1 ) {
+
+      
+      $mealtable = $this->table('cohomeals_meal_recurrence');
+      $insertValues = [];
+      $dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+      $weeknumberNames = ['First', 'Second', 'Third', 'Fourth', 'Fifth'];
+
+      switch( $recurrenceType ) {
+      case "weekly":
+          foreach ( ['First', 'Second', 'Third', 'Fourth', 'Fifth'] as $ordinal ) {
+              $insertValues = ['startPeriod'=>$start_unix, 'endPeriod'=>$end_unix, 'which_day'=>$dayNames[$param1], 'which_week'=>$ordinal, 'which_month'=>0, 'meal_title'=>$title, 'time'=>$mealtime, 'base_price'=>$price, 'signup_deadline'=>$deadline];
+              $mealtable->insert( $insertValues );
+          }
+          break;
+      case "monthlyByWeekday":
+          $insertValues = ['startPeriod'=>$start_unix, 'endPeriod'=>$end_unix, 'which_day'=>$dayNames[$param1], 'which_week'=>$weeknumberNames[$param2], 'which_month'=>0, 'meal_title'=>$title, 'time'=>$mealtime, 'base_price'=>$price, 'signup_deadline'=>$deadline];
+          $mealtable->insert( $insertValues );
+          break;
+      }
+
+  }
+
+  /// end meal creation functions
+
+  
 }
 //$cohomealslib = new CohoMealsLib;
 

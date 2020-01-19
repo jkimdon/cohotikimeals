@@ -137,16 +137,20 @@ if ( $mealtype == "regular" ) {
     $smarty->assign( 'numdiners', $numdiners );
     $wtddiners = $cohomeals->count_diners( $mealId, true );
     $smarty->assign( 'wtddiners', $wtddiners );
+
+    $foodlimits = $cohomeals->load_food_restrictions_by_meal($mealId);
+    $smarty->assign('foodlimits', $foodlimits);
+} else {
+    $foodlimits = [];
+    $smarty->assign('foodlimits', $foodlimits);
 }
+
 
 $guest_diners = $cohomeals->load_guests($mealId, 'M', $mealtype); // for now not ready to have recurring guests
 $smarty->assign('guest_diners', $guest_diners); 
 
 $buddies = $cohomeals->load_buddies_signees($user, $is_meal_admin, true); //true for including self
 $smarty->assign('buddies', $buddies);
-
-$foodlimits = $cohomeals->load_food_restrictions_by_meal($mealId);
-$smarty->assign('foodlimits', $foodlimits);
 
 $smarty->assign( 'paperwork_done', $paperwork_done );
 

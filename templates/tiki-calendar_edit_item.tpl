@@ -103,7 +103,7 @@
 	</td>
 </tr>
 {if $calitem.calendarId eq 1} {* meal program *}
-        {include file='coho_meals-edit_item.tpl'}
+        {include file='coho_meals-new_meal.tpl'}
 {else}
 <tr>
 <td>{tr}Title (or guest name if guest room reservation){/tr}</td>

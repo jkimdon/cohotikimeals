@@ -375,7 +375,7 @@ class CalendarLib extends TikiLib
 		return $ret;
 	}
 
-	function add_coho_recurrence_items(&$eventArray, $calIds, $user, $tstart, $tstop, $offset, $maxRecords, $sort_mode='start_asc', $find='', $customs=array())
+    function add_coho_recurrence_items(&$eventArray, $calIds, $user, $tstart, $tstop, $offset, $maxRecords, $sort_mode='start_asc', $find='', $customs=array())
 	{
 	  global $prefs;
 
@@ -569,14 +569,13 @@ class CalendarLib extends TikiLib
           ///////////
           // check for non-recurring meals or meals that are recurring-overrides
           $mealdate = $this->coho_unix_to_YYYYMMDD($i);
-          $query = "SELECT `cal_id`, `cal_date`, `cal_time`, `cal_signup_deadline`, `cal_base_price`, `cal_max_diners`, `cal_menu`, `cal_notes`, `meal_title`, `recurrence_override`, `recurrenceId`, `cal_cancelled`";
-          $query .= " FROM `cohomeals_meal` ";
-          $query .= " WHERE `cal_date` = $mealdate";
+          $mealtable = $this->table('cohomeals_meal');
 
-          $overridden = " AND `recurrenceId` NOT IN (0"; // placeholder to make the commas work out; there is no id = 0
-          $singlemeals = $this->fetchAll($query);
+          $overridden = array(); $overridden[0] = 0;  //placeholder, there is no id=0
+          
+          $singlemeals = $mealtable->fetchAll( ['cal_id', 'cal_date', 'cal_time', 'cal_signup_deadline', 'cal_base_price', 'cal_max_diners', 'cal_menu', 'cal_notes', 'meal_title', 'recurrence_override', 'recurrenceId', 'cal_cancelled'], ['cal_date'=>$mealdate] );
           foreach ($singlemeals as $meal) {
-              if ($meal["recurrence_override"]) $overridden .= ", " . $meal["recurrenceId"];
+              if ($meal["recurrence_override"]) $overridden[] = $meal["recurrenceId"];
               if ($meal["cal_cancelled"] == 0) {
                   $mealtitle = $meal["meal_title"];
                   if ($mealtitle == NULL) $mealtitle = "Community Meal";
@@ -630,7 +629,6 @@ class CalendarLib extends TikiLib
                   );
               }
           } // end non-recurring meals
-          $overridden .= ")";
           
           ///////////
           // check for recurring meals that were not overridden
@@ -661,15 +659,17 @@ class CalendarLib extends TikiLib
           if (TikiLib::date_format("%m", $i) % 2) $which_month = 2;
           else $which_month = 1;
 
-          $query = "SELECT `recurrenceId`, `time`, `base_price`, `menu`, `meal_title`, `signup_deadline`";
-          $query .= " FROM `cohomeals_meal_recurrence`";
-          $query .= " WHERE `which_day`='" . $which_day ."'";
-          $query .= " AND `which_week`='" . $which_wk  . "'";
-          $query .= " AND `which_month` IN (0," . $which_month . ")";
-          $query .= " AND (`startPeriod` <= $i) AND (`endPeriod` = 0 OR `endPeriod` >= $i)";
-          $query .= $overridden;
+          $mealRecurrenceTable = $this->table('cohomeals_meal_recurrence');
 
-          $recurringmeals = $this->fetchAll($query);
+          $recurringmeals = $mealRecurrenceTable->fetchAll(['recurrenceId', 'time', 'base_price', 'menu', 'meal_title', 'signup_deadline'],
+          ['which_day'=>$which_day,
+          'which_week'=>$which_wk,
+          'which_month'=>$mealRecurrenceTable->in( [0, $which_month] ),
+          'startPeriod'=>$mealRecurrenceTable->coho_orSameField('startPeriod', [$mealRecurrenceTable->exactly($i), $mealRecurrenceTable->lesserThan($i)]),
+          'endPeriod'=>$mealRecurrenceTable->coho_orSameField('endPeriod', [$mealRecurrenceTable->exactly(0), $mealRecurrenceTable->exactly($i), $mealRecurrenceTable->greaterThan($i)]),
+          'recurrenceId'=>$mealRecurrenceTable->notIn($overridden)
+          ]);
+
           foreach ($recurringmeals as $meal) {
               $mealtitle = $meal["meal_title"];
               if ($mealtitle == NULL) $mealtitle = "Community Meal";
@@ -703,24 +703,24 @@ class CalendarLib extends TikiLib
                   "result" => $meal,
                   "calitemId" => -1, // recurring
                   "calname" => "Meal Program",
-                  "time" => $meal["time"], /* user time */
-                  "end" => $meal["time"]+20000, /* assume 2 hrs */
+                  "time" => $meal["time"], // user time 
+                  "end" => $meal["time"]+20000, // assume 2 hrs 
                   "type" => 1,
                   "web" => "",
                   "startTimeStamp" => $this->coho_get_unix($meal["cal_time"],$i),
                   "endTimeStamp" => $this->coho_get_unix($meal["cal_time"]+20000,$i),
-                  "nl" => 0, /* unknown */
-                  "prio" => 0, /* unknown */
-                  "location" => "CH dining room", /* maybe want to make this variable */
-                  "category" => 0, /* unknown */
+                  "nl" => 0, // unknown 
+                  "prio" => 0, // unknown 
+                  "location" => "CH dining room", // maybe want to make this variable 
+                  "category" => 0, // unknown 
                   "name" => $mealtitle,
                   "parsedDescription" => TikiLib::lib('parser')->parse_data($description),
                   "description" => str_replace("\n|\r", "", $description),
-                  "calendarId" => $mealCalId, /* presume 1 for Meal Program */
-                  "status" => 0, /* unknown */
+                  "calendarId" => $mealCalId, // presume 1 for Meal Program 
+                  "status" => 0, // unknown 
                   "user" => $user
               );
-          } // end recurring meals
+          } // end recurring meals 
       } // end step through days
     }
 
