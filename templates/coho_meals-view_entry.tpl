@@ -213,6 +213,8 @@
   <p>{button href="coho_meals-edit_meal_summary.php?id={$mealId}&mealtype={$mealtype}&mealdatetime={$mealdatetime}" _text="Click here to begin the meal summary."}</p>
   {if $headchefbuddy || $is_meal_admin }
     <p>{button href="coho_meals-edit_meal.php?id={$mealId}&mealtype={$mealtype}&mealdatetime={$mealdatetime}" _text="Click here to edit the meal."}</p>
+  {/if}
+  {if $is_meal_admin}
     {if $mealtype eq "regular"}
       	<p><a class="btn btn-default" href="coho_meals-cancel_meal.php?id={$mealId}&mealtype={$mealtype}&mealdatetime={$mealdatetime}" onclick="return confirm('Are you sure you want to delete this meal?')">Click here to cancel this meal (and refund diners).</a></p>
     {else}

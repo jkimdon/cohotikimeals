@@ -25,7 +25,7 @@ $calperms = Perms::get(array( 'type' => 'calendar', 'object' => 1 )); // meal pr
 // format: $calperms->view_calendar true/false
 */
 $mealperms = Perms::get(array( 'type' => 'meals' ));
-$is_meal_admin = $mealperms->admin_meals;
+$is_meal_admin = ($mealperms->admin_meals || $mealperms->finance_meals);
 
 $myurl = 'coho_meals-view_entry.php';
 
