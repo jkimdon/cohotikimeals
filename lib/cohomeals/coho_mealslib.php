@@ -103,12 +103,10 @@ class CohoMealsLib extends TikiLib
   {
     $participantTable = $this->table('cohomeals_meal_participant');
     $head_chef = "";
-    $query = "SELECT cal_login FROM cohomeals_meal_participant " .
-      "WHERE cal_id = $mealid AND cal_type = 'H'";
-    $haschef = $this->getOne($query);
+    $haschef = $participantTable->fetchOne( 'cal_login', ['cal_id'=>$mealid, 'cal_type'=>'H'] );
 
-    if ( $haschef == '' ) {
-        $participantTable->delete( ['cal_id'=>$mealid, 'cal_type'=>'H', 'cal_login'=>''] );
+    if ( $haschef == '' || $haschef == 'none' ) {
+        $participantTable->delete( ['cal_id'=>$mealid, 'cal_type'=>'H', 'cal_login'=>$haschef] );
         return NULL;
     } else 
         return $haschef;
@@ -119,11 +117,14 @@ class CohoMealsLib extends TikiLib
   function recurring_head_chef( $recurrenceId ) 
   {
     $head_chef = "";
-    $query = "SELECT userId FROM cohomeals_participant_recurrence " .
-      "WHERE recurringMealId = " . $recurrenceId . " AND participant_type = 'H'";
-    $haschef = $this->getOne($query);
-    
-    return $haschef;
+    $participantTable = $this->table('cohomeals_participant_recurrence');
+    $haschef = $participantTable->fetchOne( 'userId', ['recurringMealId'=>$recurrenceId, 'participant_type'=>'H'] );
+
+    if ( $haschef == '' || $haschef == 'none' ) {
+        $participantTable->delete( ['recurringMealId'=>$recurrenceId, 'participant_type'=>'H', 'userId'=>$haschef] );
+        return NULL;
+    } else 
+        return $haschef;
   }
 
 
