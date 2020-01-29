@@ -16,7 +16,7 @@ $access->check_permission('tiki_p_view_calendar');
 $access->check_permission('tiki_p_view_meals');
 
 $mealperms = Perms::get(array( 'type' => 'meals' ));
-$is_meal_admin = ($mealperms->admin_meals || $mealperms->finance_meals);
+$is_meal_admin = ($mealperms->admin_meals); // || $mealperms->finance_meals);
 
 if (!$is_meal_admin) {
     $smarty->assign('msg', 'Error refunding meal.');

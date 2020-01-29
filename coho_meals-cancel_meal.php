@@ -4,10 +4,11 @@ $section = 'cohomeals';
 require_once('tiki-setup.php');
 include_once ('lib/cohomeals/coho_mealslib.php');
 
-$access->check_permission_either(['tiki_p_admin_meals','tiki_p_finance_meals']);
+//$access->check_permission_either(['tiki_p_admin_meals','tiki_p_finance_meals']);
+$access->check_permission(['tiki_p_admin_meals');
 
 $mealperms = Perms::get(array( 'type' => 'meals' ));
-$is_meal_admin = ($mealperms->admin_meals || $mealperms->finance_meals);
+$is_meal_admin = ($mealperms->admin_meals) // || $mealperms->finance_meals);
 
 if ( $is_meal_admin != true ) {
     $smarty->assign('msg', 'Do not have permission to delete this meal.');

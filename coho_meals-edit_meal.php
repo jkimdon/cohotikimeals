@@ -26,11 +26,15 @@ if ( !($mealId > 0) ) {
 }
 
 $mealtype = $_REQUEST["mealtype"];
+$smarty->assign( 'mealtype', $mealtype );
 $mealdatetime = $_REQUEST["mealdatetime"];
 $smarty->assign( 'mealdatetime', $mealdatetime );
 
+$keepRecurring = 0;
+if ( isset($_REQUEST["keeprecurring"]) ) $keepRecurring = $_REQUEST["keeprecurring"];
+
 // if recurring, make a new overriding meal with same as recurring and then recall this handler on the new meal to make the changes
-if ( $mealtype == "recurring" ) {
+if ( ($mealtype == "recurring") && ($keepRecurring != 1) ) {
     $newMealId = $cohomeals->create_override_from_recurrence( $mealId, $mealdatetime );
     if (!$newMealId) {
         $smarty->assign('msg', 'Error creating meal.');
@@ -41,29 +45,42 @@ if ( $mealtype == "recurring" ) {
     die;
 }
 
+$allowed_to_edit = false;
+if ( ($mealtype == "recurring") && ($is_meal_admin) )
+    $allowed_to_edit = true;
+else if ( ($mealtype == "regular") && ( ($cohomeals->is_working( $mealId, $user )) || $is_meal_admin) )
+    $allowed_to_edit = true;
+$smarty->assign('allowed_to_edit', $allowed_to_edit);
 
-if ( $cohomeals->is_working( $mealId, $user ) || $is_meal_admin ) {
-
-    $smarty->assign('allowed_to_edit', true);
+if ( $allowed_to_edit ) {
     
     $mealinfo = array();
     $cohomeals->load_meal_info( $mealtype, $mealId, $mealinfo );
     $smarty->assign( 'meal', $mealinfo );
     // mealdatetime assigned earlier
 
-    $crew_filled = array();
-    $crew_open = array();
-    $crew = $cohomeals->load_crew( $mealId );
-    foreach ( $crew as $cm ) { 
-        if ( $cm["has_volunteer"] ) {
-            $crew_filled[] = array( "job"=>$cm["job"], "person"=>$cm["fullname"]);
-        } else {
-            $crew_open[] = array( "job"=>$cm["job"], "jobID"=>str_replace(' ','-',$cm["job"]), "id"=>$cm["username"]);
-        }
+    if ( $mealtype == 'recurring' ) {
+        $price = $mealinfo["base_price"];
+        $olddollars = (int)($price / 100);
+        $oldcents = $price - ($olddollars*100);
+        $smarty->assign( 'olddollars', $olddollars );
+        $smarty->assign( 'oldcents', $oldcents );
     }
-    $smarty->assign('crew_filled', $crew_filled);
-    $smarty->assign('crew_open', $crew_open);
     
+    if ( $mealtype == "regular" ) {
+        $crew_filled = array();
+        $crew_open = array();
+        $crew = $cohomeals->load_crew( $mealId );
+        foreach ( $crew as $cm ) { 
+            if ( $cm["has_volunteer"] ) {
+                $crew_filled[] = array( "job"=>$cm["job"], "person"=>$cm["fullname"]);
+            } else {
+                $crew_open[] = array( "job"=>$cm["job"], "jobID"=>str_replace(' ','-',$cm["job"]), "id"=>$cm["username"]);
+            }
+        }
+        $smarty->assign('crew_filled', $crew_filled);
+        $smarty->assign('crew_open', $crew_open);
+    }
     
     $smarty->assign('mid', 'coho_meals-edit_meal.tpl');
     $smarty->display("tiki.tpl");

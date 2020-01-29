@@ -175,7 +175,7 @@ class CohoMealsLib extends TikiLib
 
 
 
-  // used in add_coho_meal_items  
+  // used in add_coho_meal_items  and edit_meal_handler
   function load_crew( $mealid ) {
     $query = "SELECT cal_login, cal_notes " . 
       "FROM cohomeals_meal_participant " .

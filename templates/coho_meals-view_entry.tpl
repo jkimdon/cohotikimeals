@@ -212,12 +212,13 @@
 {else}
   <p>{button href="coho_meals-edit_meal_summary.php?id={$mealId}&mealtype={$mealtype}&mealdatetime={$mealdatetime}" _text="Click here to begin the meal summary."}</p>
   {if $headchefbuddy || $is_meal_admin }
-    <p>{button href="coho_meals-edit_meal.php?id={$mealId}&mealtype={$mealtype}&mealdatetime={$mealdatetime}" _text="Click here to edit the meal."}</p>
+    <p>{button href="coho_meals-edit_meal.php?id={$mealId}&mealtype={$mealtype}&mealdatetime={$mealdatetime}" _text="Click here to edit this meal."}</p>
   {/if}
   {if $is_meal_admin}
     {if $mealtype eq "regular"}
       	<p><a class="btn btn-default" href="coho_meals-cancel_meal.php?id={$mealId}&mealtype={$mealtype}&mealdatetime={$mealdatetime}" onclick="return confirm('Are you sure you want to delete this meal?')">Click here to cancel this meal (and refund diners).</a></p>
     {else}
+        <p>{button href="coho_meals-edit_meal.php?id={$mealId}&mealtype={$mealtype}&keeprecurring=1&mealdatetime={$mealdatetime}" _text="Click here to edit all inactivated recurrences of this meal."}</p>
 	<p><a class="btn btn-default" href="coho_meals-cancel_meal.php?recurrenceId={$mealId}&mealtype={$mealtype}&mealdatetime={$mealdatetime}" onclick="return confirm('Are you sure you want to delete this meal?')">Click here to cancel this meal.</a></p>
     	<p><a class="btn btn-default" href="coho_meals-cancel_meal.php?recurrenceId={$mealId}&mealtype={$mealtype}&mealdatetime={$mealdatetime}&allmeals=1" onclick="return confirm('Are you sure you want to delete this meal?')">Click here to cancel this meal and all future inactivated meals in this recurrence on this week of the month.</a></p> (Activated meals must be cancelled one by one. If this is a weekly recurrence, you must cancel each week separately, e.g. cancel first Tuesday, second Tuesday, third Tuesday, fourth Tuesday, and fifth Tuesday.)</p>
      {/if}
