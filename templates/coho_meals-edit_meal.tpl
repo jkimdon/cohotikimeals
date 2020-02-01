@@ -34,9 +34,9 @@
     <input type="text" name="deadline" size="2" maxlength="2" value="{$meal.signup_deadline}"/> days before meal date
     </p>
 
-    {if $mealtype eq 'recurring'}
-    <p><b>Price: </b>
-    $<input type="text" name="price_dollars" size="3" maxlength="3" value="{$olddollars}" />.<input type="text" name="price_cents" size="2" maxlength="2" value="{$oldcents}"/>
+    {if $is_meal_admin}
+    <p><b>Price: </b>(If you change the price, please email coho-social to notify diners.)
+    $<input type="text" name="price_dollars" size="3" maxlength="3" value="{$olddollars}" />.<input type="text" name="price_cents" size="2" maxlength="2" value="{$oldcents}"/> 
     </p>
     {/if}
 

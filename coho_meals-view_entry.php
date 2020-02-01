@@ -80,6 +80,10 @@ if ( !$cohomeals->load_meal_info($mealtype, $mealId, $meal) ) {
 $smarty->assign('meal', $meal);
 
 $smarty->assign('mealdatetime', $mealdatetime );
+$meal_is_completed = true;
+if ( $mealdatetime > time() ) $meal_is_completed = false;
+$smarty->assign('meal_is_completed', $meal_is_completed);
+
 $tmpsignupdatetime = strtotime("-".$meal["signup_deadline"]." days",$mealdatetime);
 $deadline = new DateTime();
 $deadline->setTimestamp( $tmpsignupdatetime );

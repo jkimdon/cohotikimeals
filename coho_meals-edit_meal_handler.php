@@ -40,7 +40,7 @@ if ( $mealtype == "regular" ) {
     }
 } else {
     if ( !isset($_REQUEST["price_dollars"]) || !isset($_REQUEST["price_cents"]) ) {
-        $smarty->assign('msg', 'Missing date.');
+        $smarty->assign('msg', 'Missing price.');
         $smarty->display("error.tpl");
         die;
     }
@@ -104,9 +104,10 @@ if ( $allowed_to_edit ) {
         $updatearray['cal_notes'] = $_REQUEST["notes"];
     }
 
-    if ( isset($_REQUEST["price_dollars"]) && isset($_REQUEST["price_cents"]) && ($mealtype == "recurring") ) {
+    if ( isset($_REQUEST["price_dollars"]) && isset($_REQUEST["price_cents"]) && ($is_meal_admin) ) {
         $newprice = 100*$_REQUEST["price_dollars"] + $_REQUEST["price_cents"];
-        $updatearray['base_price'] = $newprice;
+        if ( $mealtype == "regular" ) $updatearray['cal_base_price'] = $newprice;
+        else $updatearray['base_price'] = $newprice;
     }
     
     if ( $mealtype == "regular" ) $mealchange = $tikilib->table('cohomeals_meal');

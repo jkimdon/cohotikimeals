@@ -59,7 +59,7 @@ if ( $allowed_to_edit ) {
     $smarty->assign( 'meal', $mealinfo );
     // mealdatetime assigned earlier
 
-    if ( $mealtype == 'recurring' ) {
+    if ( $is_meal_admin ) {
         $price = $mealinfo["base_price"];
         $olddollars = (int)($price / 100);
         $oldcents = $price - ($olddollars*100);
