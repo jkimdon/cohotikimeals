@@ -23,7 +23,7 @@
 
     <tr><td><b>Expenses</b>:</td><td></td><td></td><td></td></tr>
     <tr><td></td><td>Shoppers</td><td>{$shoppercost|string_format:"\$%.2f"}</td><td></td></tr>
-    <tr><td></td><td>Farmer`s market cards</td><td>{$farmercost|string_format:"\$%.2f"}</td><td></td></tr>
+    <tr><td></td><td>Market cards and prepaid accounts</td><td>{$farmercost|string_format:"\$%.2f"}</td><td></td></tr>
     <tr><td></td><td>Flat rate spices ({$numdiners} people)</td><td>{$flatrate|string_format:"\$%.2f"}</td><td></td></tr>
     <tr><td></td><td>Pantry purchases</td><td>{$pantrycost|string_format:"\$%.2f"}</td>
         <td>{foreach item=detail from=$pantry_details}{if $detail.numunits neq 0}{$detail.numunits} {$detail.units}(s) of {$detail.food} ({$detail.cost|string_format:"\$%.2f"})<br>{/if}{/foreach}</td></tr>

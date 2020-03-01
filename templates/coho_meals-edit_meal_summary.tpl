@@ -91,7 +91,8 @@
 </table>
 
 <p/>
-<p>B) How much was spent using the Farmer\'s Market cards?
+<p>B) How much was spent using Market Cards and Prepaid Accounts?<br>
+(i.e. Denison\’s, Gathering Together, Rainshine, Round House Farm, Wild Yeast Bakery)<br>
 $<input type="text" name="farmersDollars" size="3" value="{$farmersDollars}"/>.
 <input type="text" name="farmersCents" size="2" value="{$farmersCents}"/>      
 </p>
