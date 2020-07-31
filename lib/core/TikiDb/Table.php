@@ -248,6 +248,16 @@ class TikiDb_Table
 		return $this->expr('$$ < ?', [$value]);
 	}
 
+    function coho_lesserThanOrEqualTo($value)
+    {
+        return $this->expr('($$ < ? OR $$ = ?)', [$value, $value]);
+    }
+
+    function coho_isNULL()
+    {
+        return $this->expr('($$ IS NULL)');
+    }
+    
     function between($value1, $value2)
     {
         return $this->expr('($$ > ? AND $$ < ?)', [$value1,$value2]);
