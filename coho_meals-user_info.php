@@ -103,10 +103,11 @@ if (isset($_REQUEST["showbillinggroup"])) {
 $smarty->assign('adminShowBG', $adminShowBG );
 
 // legacy billing group is to write the name not the number, so we support both
-$billing_sql = "WHERE (cal_billing_group='$billingId' OR cal_billing_group='$billingName')";
+$billing_cond = "(fl.`cal_billing_group`='$billingId' OR fl.`cal_billing_group`='$billingName')";
 
 if ( $sortbymeal ) {
 
+    /*
     $query = "SELECT cal_id FROM cohomeals_meal WHERE (cal_date <= " . $filterend->format('Ymd') . ") AND (cal_date >= " . $filterstart->format('Ymd') . ")";
     $allrows = $cohomeals->fetchAll($query);
     $idselectors = '';
@@ -119,12 +120,17 @@ if ( $sortbymeal ) {
             $first = false;
         }
         $idselectors .= ")";
-    }
+        }*/
 
     // individual log tab
+
+    $query2 = "SELECT fl.`cal_login`, fl.`cal_meal_id`, fl.`cal_description`, fl.`cal_amount`, fl.`cal_running_balance`, fl.`cal_text`, fl.`cal_timestamp` FROM cohomeals_financial_log AS fl INNER JOIN cohomeals_meal AS cm ON (cm.`cal_id` = fl.`cal_meal_id`) WHERE (cm.`cal_date` <= " . $filterend->format('Ymd') . ") AND (cm.`cal_date` >= " . $filterstart->format("Ymd") . ") AND (" . $billing_cond . ") ORDER BY cm.`cal_date` DESC LIMIT 100";
+
+    /*
     $whereclause = $billing_sql;
     if ( $idselectors != "" ) $whereclause .= " AND " . $idselectors;
     $query2 = "SELECT cal_login, cal_meal_id, cal_description, cal_amount, cal_running_balance, cal_text, cal_timestamp FROM cohomeals_financial_log " . $whereclause . " ORDER BY cal_log_id DESC LIMIT 100";
+    */
     $newrows = $cohomeals->fetchAll($query2);
     $finlog = array();
     foreach( $newrows as $row ) {
@@ -137,14 +143,21 @@ if ( $sortbymeal ) {
     
     // admin financial tab
     if ( $is_meal_admin || $is_finance_admin) {
+        
+        // repeat this since I'm going to pull it out and put it into a separate page once I get around to it
+        $query2 = "SELECT fl.`cal_login`, fl.`cal_meal_id`, fl.`cal_description`, fl.`cal_amount`, fl.`cal_running_balance`, fl.`cal_text`, fl.`cal_timestamp`, fl.`cal_billing_group` FROM cohomeals_financial_log AS fl INNER JOIN cohomeals_meal AS cm ON (cm.`cal_id` = fl.`cal_meal_id`)";
 
-        $whereclause = "WHERE ";
+        $whereclause = " WHERE ";
         if ($BGterms != "") {
-            $whereclause .= $BGterms;
-            if ( $idselectors != "" ) $whereclause .= " AND " . $idselectors;
-        } else if ( $idselectors != "" ) $whereclause = "WHERE " . $idselectors;
-        else $whereclause = "";
-        $query2 = "SELECT cal_login, cal_meal_id, cal_description, cal_amount, cal_running_balance, cal_text, cal_timestamp, cal_billing_group FROM cohomeals_financial_log " . $whereclause . " ORDER BY cal_log_id DESC, cal_billing_group LIMIT 100";
+            $whereclause .= $BGterms . " AND ";
+        }
+        $whereclause .= "(cm.`cal_date` <= " . $filterend->format('Ymd') . ") AND (cm.`cal_date` >= " . $filterstart->format("Ymd") . ")";
+
+        $query2 .= $whereclause;
+        $query2 .= " ORDER BY cm.`cal_date` DESC, fl.`cal_billing_group` LIMIT 100";
+
+/*        
+          $query2 = "SELECT cal_login, cal_meal_id, cal_description, cal_amount, cal_running_balance, cal_text, cal_timestamp, cal_billing_group FROM cohomeals_financial_log " . $whereclause . " ORDER BY cal_log_id DESC, cal_billing_group LIMIT 100";*/
         $newrows = $cohomeals->fetchAll($query2);
         $adminfinlog = array();
         foreach( $newrows as $row ) {
@@ -164,7 +177,7 @@ if ( $sortbymeal ) {
 } else { // sort by transaction date
 
     // individual log tab
-    $whereclause = $billing_sql;
+    $whereclause = "WHERE " . $billing_cond;
     if ( $creditsonly == true ) $whereclause .= " AND cal_amount > 0";
     $whereclase .= " AND (cal_timestamp <= FROM_UNIXTIME(" . $filterend->format('U') . ")) AND (cal_timestamp >= FROM_UNIXTIME(" . $filterstart->format('U') . ")) ";
     $query2 = "SELECT cal_login, cal_description, cal_meal_id, cal_amount, cal_running_balance, cal_text, cal_timestamp FROM cohomeals_financial_log " . $whereclause . " ORDER BY cal_log_id DESC LIMIT 100"; 
