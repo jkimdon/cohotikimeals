@@ -64,6 +64,12 @@ class Smarty_Internal_Compile_Private_Special_Variable extends Smarty_Internal_C
                 return 'basename($_smarty_tpl->source->filepath)';
 
             case 'template_object':
+                // security fix 2/26/21
+                if (isset($compiler->smarty->security_policy)) {
+                        $compiler->trigger_template_error("(secure mode) template_object not permitted");
+                        break;
+                    }
+                // end security fix
                 return '$_smarty_tpl';
 
             case 'current_dir':

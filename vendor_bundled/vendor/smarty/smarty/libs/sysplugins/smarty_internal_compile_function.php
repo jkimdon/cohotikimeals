@@ -60,6 +60,13 @@ class Smarty_Internal_Compile_Function extends Smarty_Internal_CompileBase
                       $compiler->template->has_nocache_code, $compiler->template->required_plugins);
         $this->openTag($compiler, 'function', $save);
         $_name = trim($_attr['name'], "'\"");
+
+        // security fix 2/26/21
+        if (!preg_match('/^[a-zA-Z0-9_\x80-\xff]+$/', $_name)) {
+	        $compiler->trigger_template_error("Function name contains invalid characters: {$_name}", null);
+        }
+        // end security fix
+        
         unset($_attr['name']);
         // set flag that we are compiling a template function
         $compiler->compiles_template_function = true;
