@@ -81,7 +81,11 @@ if ( $allowed_to_edit ) {
     $newhour = $_REQUEST["mealtime_Hour"];
     $newminute = $_REQUEST["mealtime_Minute"];
     $newampm = $_REQUEST["mealtime_Meridian"];
-    if ( $newampm == "pm" ) $newhour += 12;
+    if ($newhour == 12) {
+        if ($newampm == "am" ) $newhour = 0;
+    } else {
+        if ( $newampm == "pm" ) $newhour += 12;
+    }
     $newdatetime->setTime( $newhour, $newminute );
     $tmptime = str_pad( $newdatetime->format('Hi'), 6, "0", STR_PAD_RIGHT );
     if ( $mealtype == "regular" ) $updatearray['cal_time'] = $tmptime;
