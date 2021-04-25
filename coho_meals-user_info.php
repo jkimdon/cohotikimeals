@@ -179,8 +179,8 @@ if ( $sortbymeal ) {
     // individual log tab
     $whereclause = "WHERE " . $billing_cond;
     if ( $creditsonly == true ) $whereclause .= " AND cal_amount > 0";
-    $whereclase .= " AND (cal_timestamp <= FROM_UNIXTIME(" . $filterend->format('U') . ")) AND (cal_timestamp >= FROM_UNIXTIME(" . $filterstart->format('U') . ")) ";
-    $query2 = "SELECT cal_login, cal_description, cal_meal_id, cal_amount, cal_running_balance, cal_text, cal_timestamp FROM cohomeals_financial_log " . $whereclause . " ORDER BY cal_log_id DESC LIMIT 100"; 
+    $whereclause .= " AND (cal_timestamp <= FROM_UNIXTIME(" . $filterend->format('U') . ")) AND (cal_timestamp >= FROM_UNIXTIME(" . $filterstart->format('U') . ")) ";
+    $query2 = "SELECT cal_login, cal_description, cal_meal_id, cal_amount, cal_running_balance, cal_text, cal_timestamp FROM cohomeals_financial_log AS fl " . $whereclause . " ORDER BY cal_log_id DESC LIMIT 100"; 
     $newrows = $cohomeals->fetchAll($query2);
     $finlog = array();
     foreach( $newrows as $row ) {
