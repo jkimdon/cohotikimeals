@@ -1,0 +1,15 @@
+To conenct to mysql (password is 'test'):
+
+mysql --protocol tcp  -u root -p
+
+data is stored in ./mysql-data in the current directory.
+
+To connect to apache point a web browser here:
+
+http://localhost:8001/
+
+web root is ./www in the current directory.
+
+To connect to phpmyAdmin point a web browser here:
+
+http://localhost:8000/
