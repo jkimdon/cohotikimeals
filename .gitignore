@@ -1,3 +1,6 @@
+.DS_Store
+vendor_bundled/vendor/.DS_Store
+mysql-data/
 db/local.php
 db/lock
 temp/cache/*
