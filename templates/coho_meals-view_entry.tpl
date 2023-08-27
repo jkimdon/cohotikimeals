@@ -205,7 +205,7 @@
        </div>
 
 <b>For the head chef:</b><br>
-<p>When your meal is complete, please complete the online summary then submit your receipts and reimbursement form to Valerie (in her CH cubby or in the purple box on her porch).</p>
+<p>When your meal is complete, please complete the online summary then submit your receipts and reimbursement form to Jason in his CH cubby along with your receipts.</p>
 
 {if $paperwork_done} 
   <p>Online summary for this meal has been completed. {button href="coho_meals-display_meal_summary.php?id={$mealId}" _text="Click here to view"}</p>

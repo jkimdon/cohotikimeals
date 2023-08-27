@@ -33,7 +33,7 @@
 </table>
 
 
-<p>  *** Remember to submit a reimbursement form to Valerie (in her CH cubby or in the purple box on her porch) along with your receipts. ***</p> {* Form is below for reference. ***</p> 
+<p>  *** Remember to submit a reimbursement form to Jason in his CH cubby along with your receipts. ***</p> {* Form is below for reference. ***</p> 
 <table>
      <tr class="d0">
          <td>Reimbursement form:</td>
